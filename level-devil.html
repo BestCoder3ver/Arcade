@@ -26,11 +26,108 @@ canvas{
   border:4px solid #4D2D18;
   cursor:pointer;
 }
+
+#wrap{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  height:100vh;
+  width:100%;
+}
+
+#dpad{
+  display:none;
+  flex:1 1 auto;
+  width:100%;
+  flex-direction:row;
+  user-select:none;
+  -webkit-user-select:none;
+  gap:0;
+  min-height:0;
+}
+
+#dpad-left,
+#dpad-right{
+  flex:1;
+  display:flex;
+  min-height:0;
+  overflow:hidden;
+}
+
+#dpad-center{
+  flex:0 0 200px;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+
+.dbtn{
+  background:rgba(0,0,0,0.45);
+  border:2px solid rgba(255,255,255,0.35);
+  color:#fff;
+  font-size:36px;
+  text-align:center;
+  cursor:pointer;
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#dbu{
+  flex:1;
+  border-bottom:none;
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+}
+
+#dbd{
+  flex:1;
+  border-top:none;
+  border-top-left-radius:0;
+  border-top-right-radius:0;
+}
+
+#dpad-divider{
+  flex:0 0 2px;
+  background:rgba(255,255,255,0.5);
+  position:relative;
+  z-index:1;
+}
+
+#dbl{
+  flex:1;
+  border-right:none;
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
+}
+
+#dbr{
+  flex:1;
+  border-left:none;
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
+}
 </style>
 </head>
 <body>
 
-<canvas id="game" width="960" height="480"></canvas>
+<div id="wrap">
+  <canvas id="game" width="960" height="480"></canvas>
+
+  <div id="dpad">
+    <div id="dpad-left" class="dbtn">◄</div>
+    <div id="dpad-center">
+      <div id="dbu" class="dbtn">▲</div>
+      <div id="dpad-divider"></div>
+      <div id="dbd" class="dbtn">▼</div>
+    </div>
+    <div id="dpad-right" class="dbtn">►</div>
+  </div>
+</div>
 
 <script>
 /* ========= GLOBAL AUTH CHECK ========= */
@@ -97,8 +194,31 @@ let camShake=0;
 
 /* ========= INPUT ========= */
 let keys={}, mouse={x:0,y:0,click:false};
+
+const dpad = document.getElementById('dpad');
+const dbu = document.getElementById('dbu');
+const dbd = document.getElementById('dbd');
+const dbl = document.getElementById('dpad-left');
+const dbr = document.getElementById('dpad-right');
+
+// D-pad event handlers
+['mousedown','touchstart'].forEach(e => {
+  dbu.addEventListener(e, (ev) => { ev.preventDefault(); keys[' '] = true; });
+  dbd.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowDown'] = true; });
+  dbl.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowLeft'] = true; });
+  dbr.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowRight'] = true; });
+});
+
+['mouseup','touchend'].forEach(e => {
+  dbu.addEventListener(e, (ev) => { ev.preventDefault(); keys[' '] = false; });
+  dbd.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowDown'] = false; });
+  dbl.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowLeft'] = false; });
+  dbr.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowRight'] = false; });
+});
+
 document.addEventListener("keydown",e=>{
   keys[e.key]=true;
+  if(state==="menu" && e.key==="ArrowUp") startGame();
   if(state==="menu" && e.key==="Enter") startGame();
   if(e.key==="Escape"){
     if(state==="game") state="paused";
@@ -199,7 +319,7 @@ if(state!=="game") return;
 p.vx=0;
 if(keys.ArrowRight){p.vx=4; p.face=1;}
 if(keys.ArrowLeft){p.vx=-4; p.face=-1;}
-if(keys[" "] && p.grounded){p.vy=-13;}
+if(keys.ArrowUp && p.grounded){p.vy=-13;}
 
 p.vy+=0.8;
 p.x+=p.vx;
@@ -275,6 +395,7 @@ ctx.textAlign="center";
 
 /* MENU */
 if(state==="menu"){
+  dpad.style.display = 'flex';
   ctx.fillStyle=C.bg;
   ctx.fillRect(0,0,960,480);
 
@@ -283,7 +404,7 @@ if(state==="menu"){
   ctx.fillText("LEVEL DEVIL",480,180);
 
   ctx.font="20px DevilFont";
-  ctx.fillText("Press ENTER to start",480,220);
+  ctx.fillText("Press UP to start",480,220);
 
   /* BACK TO HUB BUTTON */
   const hubX=380;
@@ -311,6 +432,8 @@ if(state==="menu"){
 
   return;
 }
+
+dpad.style.display = state === 'game' ? 'flex' : 'none';
 
 /* PAUSED */
 if(state==="paused"){
