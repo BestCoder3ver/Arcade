@@ -13,6 +13,12 @@
     .cell.x{color:#e74c3c}
     .cell.o{color:#f1c40f}
     #status{color:#ecf0f1;font-size:20px;min-height:30px;margin:20px 0}
+    #button-container{display:flex;gap:10px;justify-content:center;margin:20px 0}
+    #button-container button{padding:10px 30px;font-size:16px;color:#fff;border:none;border-radius:8px;cursor:pointer}
+    #newgame-btn{background:#27ae60}
+    #newgame-btn:hover{background:#229954}
+    #newpvp-btn{background:#9b59b6}
+    #newpvp-btn:hover{background:#8e44ad}
     #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
     #back-btn:hover{background:white;color:black}
     #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#ecf0f1;font-size:14px;z-index:90;font-family:monospace}
@@ -23,7 +29,10 @@
     <h1 style="color:#ecf0f1;margin-top:0">⭕ TIC-TAC-TOE ❌</h1>
     <div id="board"></div>
     <div id="status">X's turn</div>
-    <button onclick="init()" style="padding:10px 30px;font-size:16px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer">New Game</button>
+    <div id="button-container">
+      <button id="newgame-btn" onclick="init()">New Game</button>
+      <button id="newpvp-btn" onclick="initPvP()">New PvP Game</button>
+    </div>
   </div>
   <div id="scoreDisplay">Wins: 0</div>
   <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
@@ -38,6 +47,7 @@ let gameState = Array(9).fill('');
 let currentPlayer = 'X';
 let gameOver = false;
 let wins = 0;
+let isPvP = false;
 
 scoreDisplay.textContent = 'Wins: ' + wins;
 
@@ -83,14 +93,27 @@ function aiMove(){
 
 function handleClick(idx){
   if (gameOver || gameState[idx]) return;
-  gameState[idx] = 'X';
+  
+  // In PvP mode, allow both X and O to play
+  if (isPvP) {
+    if (currentPlayer !== 'X' && currentPlayer !== 'O') return;
+  } else {
+    // In AI mode, only X can play
+    if (currentPlayer !== 'X') return;
+  }
+  
+  gameState[idx] = currentPlayer;
   
   let result = checkWin();
   if (result === 'X') {
-    status.textContent = '🎉 You Win!';
+    status.textContent = '🎉 X Wins!';
     gameOver = true;
     wins++;
     scoreDisplay.textContent = 'Wins: ' + wins;
+    return;
+  } else if (result === 'O') {
+    status.textContent = '🎉 O Wins!';
+    gameOver = true;
     return;
   } else if (result === 'draw') {
     status.textContent = 'It\'s a Draw!';
@@ -98,23 +121,30 @@ function handleClick(idx){
     return;
   }
   
-  currentPlayer = 'O';
-  status.textContent = 'AI thinking...';
-  setTimeout(() => {
-    aiMove();
-    result = checkWin();
-    if (result === 'O') {
-      status.textContent = 'AI Wins!';
-      gameOver = true;
-    } else if (result === 'draw') {
-      status.textContent = 'It\'s a Draw!';
-      gameOver = true;
-    } else {
-      currentPlayer = 'X';
-      status.textContent = 'X\'s turn';
-    }
-    render();
-  }, 500);
+  if (isPvP) {
+    // PvP mode: switch to other player
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    status.textContent = currentPlayer + '\'s turn';
+  } else {
+    // AI mode
+    currentPlayer = 'O';
+    status.textContent = 'AI thinking...';
+    setTimeout(() => {
+      aiMove();
+      result = checkWin();
+      if (result === 'O') {
+        status.textContent = 'AI Wins!';
+        gameOver = true;
+      } else if (result === 'draw') {
+        status.textContent = 'It\'s a Draw!';
+        gameOver = true;
+      } else {
+        currentPlayer = 'X';
+        status.textContent = 'X\'s turn';
+      }
+      render();
+    }, 500);
+  }
   
   render();
 }
@@ -129,12 +159,31 @@ function render(){
 }
 
 function init(){
+  isPvP = false;
   board.innerHTML = '';
   cells = [];
   gameState = Array(9).fill('');
   currentPlayer = 'X';
   gameOver = false;
   status.textContent = 'X\'s turn';
+  
+  for (let i = 0; i < 9; i++) {
+    let cell = document.createElement('button');
+    cell.className = 'cell';
+    cell.onclick = () => handleClick(i);
+    board.appendChild(cell);
+    cells.push(cell);
+  }
+}
+
+function initPvP(){
+  isPvP = true;
+  board.innerHTML = '';
+  cells = [];
+  gameState = Array(9).fill('');
+  currentPlayer = 'X';
+  gameOver = false;
+  status.textContent = 'X\'s turn (Player 1)';
   
   for (let i = 0; i < 9; i++) {
     let cell = document.createElement('button');

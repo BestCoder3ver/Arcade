@@ -57,9 +57,6 @@ function shuffle(arr){
 }
 
 function resetAll(){
-  localStorage.removeItem('memory_best');
-  best = 0;
-  bestDisplay.textContent = 'Best: 0';
   init();
 }
 
@@ -106,7 +103,9 @@ function flip(card, idx){
       
       if (matched === cards.length){
         gameRunning = false;
-        best = Math.min(best === 0 ? moves : best, moves);
+        if (best === 0 || moves < best) {
+          best = moves;
+        }
         localStorage.setItem('memory_best', best);
         bestDisplay.textContent = 'Best: ' + best;
         overlay.innerHTML = '<div style="font-size:24px;color:#2ecc71">✓ WIN!</div><div style="color:#ecf0f1">Moves: '+moves+'<br>Best: '+best+'<br><br>Click to restart</div>';
