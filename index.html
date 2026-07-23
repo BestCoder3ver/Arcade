@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jake's Arcade Hub</title>
+
+<style>
+body{
+    margin:0;
+    background:black;
+    color:white;
+    font-family:Arial, sans-serif;
+}
+
+/* LEFT MENU */
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    width:250px;
+    height:100vh;
+    background:black;
+    padding:20px;
+    box-sizing:border-box;
+    overflow-y:auto;
+}
+
+/* TITLE */
+h1{
+    color:cyan;
+    text-align:center;
+    text-shadow:0 0 15px cyan;
+    margin-top:0;
+}
+
+/* BUTTONS */
+button{
+    width:100%;
+    padding:12px;
+    margin-bottom:12px;
+    font-size:16px;
+    font-weight:bold;
+    border:none;
+    border-radius:10px;
+    background:cyan;
+    color:black;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+button:hover{
+    background:white;
+    transform:scale(1.03);
+}
+
+/* PASSWORD OVERLAY */
+#passwordOverlay{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.92);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:99999;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+#passwordOverlay h1{
+    color:cyan;
+    text-shadow:0 0 15px cyan;
+    margin-bottom:10px;
+}
+
+#passwordOverlay p{
+    max-width:500px;
+    margin-bottom:20px;
+    color:#aaa;
+}
+
+#passwordOverlay input{
+    padding:15px;
+    width:320px;
+    font-size:20px;
+    border-radius:8px;
+    border:2px solid cyan;
+    background:#111;
+    color:white;
+    text-align:center;
+    margin-bottom:15px;
+}
+
+#passwordOverlay button{
+    width:auto;
+    padding:12px 40px;
+    font-size:18px;
+    font-weight:bold;
+    border:none;
+    border-radius:10px;
+    background:cyan;
+    color:black;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+#passwordOverlay button:hover{
+    background:white;
+    transform:scale(1.03);
+}
+
+#pwError{
+    color:#ff4444;
+    margin-top:15px;
+    font-size:16px;
+}
+
+/* RESET TIMER BUTTON */
+#resetTimerBtn{
+    position:fixed;
+    top:15px;
+    right:15px;
+    z-index:9999;
+    width:auto;
+    padding:8px 16px;
+    font-size:14px;
+    font-weight:bold;
+    border:2px solid #ff4444;
+    border-radius:8px;
+    background:#331111;
+    color:#ff6666;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+#resetTimerBtn:hover{
+    background:#551111;
+    color:#ff8888;
+    transform:scale(1.03);
+}
+
+/* Timer display */
+#timerDisplay{
+    position:fixed;
+    top:15px;
+    right:170px;
+    z-index:9999;
+    font-size:14px;
+    color:#88ff88;
+    font-family:monospace;
+}
+</style>
+</head>
+
+<body>
+
+<div id="timerDisplay"></div>
+<button id="resetTimerBtn">Reset Timer</button>
+
+<div id="passwordOverlay">
+    <h1>🔒 Password Required</h1>
+    <p>This arcade is locked. Enter the password to unlock all games for 24 hours.</p>
+    <input id="pwInput" type="password" placeholder="Enter password...">
+    <button id="pwSubmit">Unlock</button>
+    <p id="pwError"></p>
+</div>
+
+<div class="sidebar">
+
+    <h1>🎮 Arcade Hub</h1>
+
+    <button onclick="checkAuthThenGo('neondash.html')">
+        ⚡ Neon Dash
+    </button>
+
+    <button onclick="checkAuthThenGo('rhythm.html')">
+        🎹 Piano Game
+    </button>
+
+    <button onclick="checkAuthThenGo('snake.html')">
+        🐍 Snake
+    </button>
+
+    <button onclick="checkAuthThenGo('level-devil.html')">
+        🥷 level devil (kbm only)
+    </button>
+    <button onclick="checkAuthThenGo('crossyroad.html')">
+         🚗 crossy road
+    </button>
+    <button onclick="checkAuthThenGo('flappy bird.html')">
+         🐤 Flappy Bird
+    </button>
+    <button onclick="checkAuthThenGo('2048.html')">
+         🧩 2048
+    </button>
+    <!-- Add more downloaded games here later -->
+
+</div>
+
+<script>
+const PASSWORD = "jjaakkeelol"; // Set your password here
+const PLAY_TIME = 24 * 60 * 60 * 1000; // 24 hours
+
+const overlay = document.getElementById('passwordOverlay');
+const pwInput = document.getElementById('pwInput');
+const pwSubmit = document.getElementById('pwSubmit');
+const pwError = document.getElementById('pwError');
+const resetBtn = document.getElementById('resetTimerBtn');
+const timerDisplay = document.getElementById('timerDisplay');
+
+function isAuthenticated() {
+    const unlockTime = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+    return Date.now() < unlockTime;
+}
+
+function checkAuth() {
+    if (isAuthenticated()) {
+        overlay.style.display = 'none';
+        return true;
+    } else {
+        overlay.style.display = 'flex';
+        localStorage.removeItem('globalUnlockTime');
+        return false;
+    }
+}
+
+function checkAuthThenGo(url) {
+    if (isAuthenticated()) {
+        location.href = url;
+    } else {
+        overlay.style.display = 'flex';
+        pwError.textContent = 'Please enter the password to play.';
+    }
+}
+
+pwSubmit.onclick = function() {
+    const val = pwInput.value;
+    if (val === PASSWORD) {
+        const end = Date.now() + PLAY_TIME;
+        localStorage.setItem('globalUnlockTime', end);
+        overlay.style.display = 'none';
+        pwError.textContent = '';
+        pwInput.value = '';
+        updateTimer();
+    } else {
+        pwError.textContent = 'Wrong password.';
+    }
+};
+
+pwInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        pwSubmit.click();
+    }
+});
+
+resetBtn.onclick = function() {
+    localStorage.removeItem('globalUnlockTime');
+    overlay.style.display = 'flex';
+    pwError.textContent = 'Timer reset. Enter the password again.';
+    timerDisplay.textContent = '';
+};
+
+function updateTimer() {
+    const unlockTime = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+    const remaining = unlockTime - Date.now();
+    if (remaining > 0) {
+        const hrs = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        timerDisplay.textContent = `⏱ ${hrs}h ${mins}m ${secs}s`;
+    } else if (checkAuth()) {
+        timerDisplay.textContent = '';
+    } else {
+        timerDisplay.textContent = '';
+    }
+}
+
+// Check if redirected from a game with needauth param
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('needauth') === '1') {
+    localStorage.removeItem('globalUnlockTime');
+    overlay.style.display = 'flex';
+    pwError.textContent = 'Your session expired. Please enter the password to continue.';
+}
+
+// Initial auth check
+checkAuth();
+
+// Update timer every second
+setInterval(updateTimer, 1000);
+updateTimer();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌐 WebSurf Browser</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background: #1a1a2e;
+  color: #eee;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== TOOLBAR ===== */
+#toolbar {
+  background: #16213e;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #0f3460;
+  flex-wrap: wrap;
+}
+
+#toolbar button {
+  background: #0f3460;
+  border: none;
+  color: #a8d8ea;
+  font-size: 15px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.15s;
+  min-width: 30px;
+  text-align: center;
+  touch-action: manipulation;
+}
+
+#toolbar button:hover { background: #1a4a7a; color: #fff; }
+#toolbar button:active { transform: scale(0.93); }
+
+#urlbar {
+  flex: 1;
+  min-width: 80px;
+  background: #0a0a1a;
+  border: 1px solid #0f3460;
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #eee;
+  font-size: 13px;
+  outline: none;
+  font-family: monospace;
+}
+
+#urlbar:focus { border-color: #e94560; box-shadow: 0 0 8px rgba(233,69,96,0.3); }
+#urlbar::placeholder { color: #555; }
+
+/* ===== BOOKMARKS ===== */
+#bookmarksBar {
+  background: #0f3460;
+  padding: 3px 6px;
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+#bookmarksBar::-webkit-scrollbar { height: 2px; }
+#bookmarksBar::-webkit-scrollbar-thumb { background: #e94560; }
+
+.bm {
+  background: #1a1a3e;
+  border: none;
+  color: #a8d8ea;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+  touch-action: manipulation;
+}
+.bm:hover { background: #2a2a5e; color: #fff; }
+
+/* ===== TABS ===== */
+#tabsBar {
+  background: #0d1b3e;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px 0;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+#tabsBar::-webkit-scrollbar { height: 2px; }
+#tabsBar::-webkit-scrollbar-thumb { background: #e94560; }
+
+.tab {
+  background: #16213e;
+  border: none;
+  color: #888;
+  padding: 4px 10px;
+  border-radius: 6px 6px 0 0;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+  max-width: 120px;
+  transition: 0.15s;
+  touch-action: manipulation;
+}
+
+.tab.active { background: #1a1a2e; color: #fff; border-bottom: 2px solid #e94560; }
+.tab .tc { font-size: 12px; opacity: 0.5; margin-left: auto; padding: 0 2px; }
+.tab .tc:hover { opacity: 1; color: #e94560; }
+
+#newTabBtn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+#newTabBtn:hover { color: #fff; }
+
+/* ===== BROWSER VIEW ===== */
+#browserView {
+  flex: 1;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+}
+
+#mainFrame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* ===== BLOCKED / WELCOME OVERLAY ===== */
+#overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: #1a1a2e;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+#overlay.show { display: flex; }
+
+#overlay h2 { color: #e94560; font-size: 24px; margin-bottom: 8px; }
+#overlay p { color: #888; font-size: 14px; max-width: 500px; margin-bottom: 16px; line-height: 1.5; }
+
+#overlay .quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  max-width: 580px;
+  width: 100%;
+}
+
+#overlay .quick-grid button {
+  background: #0f3460;
+  border: none;
+  color: #a8d8ea;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.15s;
+  touch-action: manipulation;
+}
+
+#overlay .quick-grid button:hover { background: #1a4a7a; color: #fff; transform: scale(1.03); }
+
+#overlay .search-box {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+}
+
+#overlay .search-box input {
+  flex: 1;
+  background: #0a0a1a;
+  border: 2px solid #0f3460;
+  border-radius: 25px;
+  padding: 12px 20px;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+
+#overlay .search-box input:focus { border-color: #e94560; }
+#overlay .search-box button {
+  background: #e94560;
+  border: none;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ===== YOUTUBE MODE ===== */
+#ytMode {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: #0a0a0a;
+  flex-direction: column;
+  z-index: 5;
+}
+
+#ytMode.show { display: flex; }
+
+#ytMode .yt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #111;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+#ytMode .yt-header input {
+  flex: 1;
+  min-width: 100px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 20px;
+  padding: 7px 14px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+#ytMode .yt-header input:focus { border-color: #ff0000; }
+
+#ytMode .yt-header .yt-btn {
+  background: #ff0000;
+  border: none;
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#ytMode .yt-header .yt-btn:hover { background: #cc0000; }
+#ytMode .yt-header .yt-close { background: #333; color: #888; }
+#ytMode .yt-header .yt-close:hover { background: #444; color: #fff; }
+
+#ytPlayer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+#ytPlayer iframe { width: 100%; height: 100%; border: none; }
+
+#ytPlaceholder {
+  text-align: center;
+  color: #555;
+}
+#ytPlaceholder .logo { font-size: 50px; margin-bottom: 12px; }
+
+/* ===== STATUS ===== */
+#statusBar {
+  background: #0d1b3e;
+  padding: 2px 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 500px) {
+  #toolbar button { font-size: 13px; padding: 4px 6px; min-width: 24px; }
+  #urlbar { font-size: 11px; padding: 5px 10px; }
+  .bm { font-size: 10px; padding: 2px 7px; }
+  #overlay .quick-grid { grid-template-columns: repeat(2, 1fr); }
+  #overlay .search-box input { font-size: 14px; padding: 10px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== TOOLBAR ===== -->
+<div id="toolbar">
+  <button id="backBtn" title="Back">◀</button>
+  <button id="fwdBtn" title="Forward">▶</button>
+  <button id="refBtn" title="Refresh">⟳</button>
+  <button id="homeBtn" title="Home">🏠</button>
+  <button id="ytBtn" title="YouTube Mode (watch videos)">▶</button>
+  <input id="urlbar" type="text" placeholder="Search Google or type URL..." autocomplete="off" spellcheck="false">
+  <button id="goBtn" title="Go">Go</button>
+</div>
+
+<!-- ===== BOOKMARKS ===== -->
+<div id="bookmarksBar">
+  <button class="bm" data-url="https://www.google.com">🔍 Google</button>
+  <button class="bm" data-url="https://search.brave.com">🦁 Brave Search</button>
+  <button class="bm" data-url="https://lite.duckduckgo.com/lite">🦆 DuckDuckGo</button>
+  <button class="bm" data-url="https://www.bing.com">🔎 Bing</button>
+  <button class="bm" data-url="https://en.wikipedia.org">📚 Wikipedia</button>
+  <button class="bm" data-url="https://github.com">🐙 GitHub</button>
+  <button class="bm" data-url="https://stackoverflow.com">📋 StackOverflow</button>
+  <button class="bm" data-url="https://www.twitch.tv">🎮 Twitch</button>
+  <button class="bm" data-url="https://www.reddit.com">📱 Reddit</button>
+  <button class="bm" data-url="https://archive.org">📦 Archive.org</button>
+  <button class="bm" data-url="https://www.spotify.com">🎵 Spotify</button>
+  <button class="bm" data-url="https://news.ycombinator.com">📰 Hacker News</button>
+  <button class="bm" data-url="https://www.wolframalpha.com">🧮 WolframAlpha</button>
+  <button class="bm" data-url="https://chat.openai.com">🤖 ChatGPT</button>
+</div>
+
+<!-- ===== TABS ===== -->
+<div id="tabsBar">
+  <div id="tabsContainer"></div>
+  <button id="newTabBtn">+</button>
+</div>
+
+<!-- ===== BROWSER VIEW ===== -->
+<div id="browserView">
+  <iframe id="mainFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" style="display:none;"></iframe>
+
+  <!-- Overlay (welcome + blocked) -->
+  <div id="overlay" class="show">
+    <h2>🌐 WebSurf Browser</h2>
+    <p>Search the web, watch YouTube videos, browse Wikipedia, and more!<br>Type in the URL bar or click a bookmark above.</p>
+    
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="Search Google or enter URL...">
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <p style="font-size:12px;color:#555;margin-bottom:12px;">⬇ Or pick a site ⬇</p>
+
+    <div class="quick-grid">
+      <button onclick="navigate('https://www.youtube.com')">▶ YouTube</button>
+      <button onclick="navigate('https://www.google.com')">🔍 Google</button>
+      <button onclick="navigate('https://search.brave.com')">🦁 Brave Search</button>
+      <button onclick="navigate('https://lite.duckduckgo.com/lite')">🦆 DuckDuckGo</button>
+      <button onclick="navigate('https://www.bing.com')">🔎 Bing</button>
+      <button onclick="navigate('https://en.wikipedia.org')">📚 Wikipedia</button>
+      <button onclick="navigate('https://www.twitch.tv')">🎮 Twitch</button>
+      <button onclick="navigate('https://www.reddit.com')">📱 Reddit</button>
+      <button onclick="navigate('https://github.com')">🐙 GitHub</button>
+      <button onclick="navigate('https://chat.openai.com')">🤖 ChatGPT</button>
+      <button onclick="navigate('https://archive.org')">📦 Archive</button>
+      <button onclick="navigate('https://news.ycombinator.com')">📰 Hacker News</button>
+      <button onclick="navigate('https://www.wolframalpha.com')">🧮 WolframAlpha</button>
+      <button onclick="navigate('https://www.spotify.com')">🎵 Spotify</button>
+      <button onclick="openYouTubeMode()">▶▶ WATCH YOUTUBE</button>
+    </div>
+  </div>
+
+  <!-- YouTube Mode -->
+  <div id="ytMode">
+    <div class="yt-header">
+      <button class="yt-btn yt-close" onclick="closeYouTubeMode()">✕ Back</button>
+      <span style="color:#ff0000;font-weight:bold;font-size:14px;">▶ YouTube</span>
+      <input id="ytInput" type="text" placeholder="Paste YouTube URL or video ID...">
+      <button class="yt-btn" onclick="loadYouTube()">Watch</button>
+    </div>
+    <div class="yt-player" id="ytPlayerDiv">
+      <div id="ytPlaceholder">
+        <div class="logo">▶</div>
+        <p style="font-size:14px;">Paste a YouTube link to watch videos!</p>
+        <p style="font-size:12px;color:#555;margin-top:6px;">Examples:<br>youtube.com/watch?v=dQw4w9WgXcQ<br>youtu.be/dQw4w9WgXcQ<br>Just paste the video ID: dQw4w9WgXcQ</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATUS ===== -->
+<div id="statusBar">
+  <span id="statusLeft">Ready</span>
+  <span id="statusRight">WebSurf v1.0</span>
+</div>
+
+<script>
+// ===== AUTH CHECK =====
+(function() {
+  const t = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+  if (Date.now() >= t) {
+    localStorage.removeItem('globalUnlockTime');
+    window.location.href = 'index.html?needauth=1';
+    return;
+  }
+  setInterval(() => {
+    const u = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+    if (Date.now() >= u) {
+      localStorage.removeItem('globalUnlockTime');
+      window.location.href = 'index.html?needauth=1';
+    }
+  }, 1000);
+})();
+
+// ===== STATE =====
+let tabs = [];
+let activeTabId = null;
+let tabCounter = 0;
+let currentUrl = '';
+
+const frame = document.getElementById('mainFrame');
+const overlay = document.getElementById('overlay');
+const urlbar = document.getElementById('urlbar');
+const ytMode = document.getElementById('ytMode');
+const ytInput = document.getElementById('ytInput');
+const ytPlayerDiv = document.getElementById('ytPlayerDiv');
+const ytPlaceholder = document.getElementById('ytPlaceholder');
+const tabsContainer = document.getElementById('tabsContainer');
+
+// Sites that work well in iframes:
+const WORKING_SITES = [
+  'google.com', 'bing.com', 'duckduckgo.com', 'search.brave.com',
+  'wikipedia.org', 'github.com', 'stackoverflow.com', 'reddit.com',
+  'archive.org', 'spotify.com', 'wolframalpha.com', 'news.ycombinator.com',
+  'chat.openai.com', 'twitch.tv', 'youtube.com', 'youtu.be',
+  'codepen.io', 'replit.com', 'itch.io',
+];
+
+// ===== TAB MANAGEMENT =====
+function createTab(url, focus) {
+  const id = ++tabCounter;
+  tabs.push({ id, url: url || '', title: 'New Tab', history: [url || ''], histIdx: 0 });
+  renderTabs();
+  if (focus !== false) switchTab(id);
+  if (url) navigateTo(url);
+  return id;
+}
+
+function switchTab(id) {
+  activeTabId = id;
+  const tab = tabs.find(t => t.id === id);
+  if (!tab) return;
+  renderTabs();
+  loadTab(tab);
+}
+
+function loadTab(tab) {
+  currentUrl = tab.url || '';
+  urlbar.value = currentUrl;
+  
+  if (!currentUrl) {
+    frame.style.display = 'none';
+    overlay.classList.add('show');
+    ytMode.classList.remove('show');
+    document.getElementById('statusLeft').textContent = 'New Tab';
+    return;
+  }
+  
+  // Check if it's a YouTube link
+  if (isYoutubeUrl(currentUrl)) {
+    openYouTubeMode(currentUrl);
+    return;
+  }
+  
+  frame.style.display = 'block';
+  overlay.classList.remove('show');
+  ytMode.classList.remove('show');
+  frame.src = currentUrl;
+  document.getElementById('statusLeft').textContent = 'Loading ' + currentUrl + '…';
+  
+  // Check if load works
+  setTimeout(() => {
+    try {
+      const doc = frame.contentDocument || frame.contentWindow?.document;
+      if (doc && doc.body) {
+        const title = doc.title || currentUrl;
+        tab.title = title;
+        renderTabs();
+        document.getElementById('statusLeft').textContent = currentUrl;
+      }
+    } catch(e) {
+      // Blocked - show overlay with options
+      showBlockedOverlay(currentUrl);
+    }
+  }, 1500);
+}
+
+function showBlockedOverlay(url) {
+  frame.style.display = 'none';
+  overlay.classList.add('show');
+  document.getElementById('statusLeft').textContent = '🔒 ' + url + ' (blocked iframe)';
+  
+  // Change overlay content to show blocked message
+  overlay.innerHTML = `
+    <h2>🔒 This site can't be embedded</h2>
+    <p>${url} blocks being loaded in a browser frame. Try these instead:</p>
+    <div class="quick-grid" style="margin-bottom:16px;">
+      <button onclick="navigate('https://www.youtube.com')">▶ YouTube</button>
+      <button onclick="navigate('https://search.brave.com')">🦁 Brave Search</button>
+      <button onclick="navigate('https://lite.duckduckgo.com/lite')">🦆 DuckDuckGo</button>
+      <button onclick="navigate('https://www.bing.com')">🔎 Bing</button>
+      <button onclick="navigate('https://en.wikipedia.org')">📚 Wikipedia</button>
+      <button onclick="navigate('https://github.com')">🐙 GitHub</button>
+      <button onclick="openYouTubeMode()">▶ YouTube Mode</button>
+    </div>
+    <div class="search-box">
+      <input id="searchInput2" type="text" placeholder="Try searching instead..." value="${url.replace(/https?:\/\//,'').split('/')[0]}">
+      <button onclick="searchFromInput(document.getElementById('searchInput2').value)">Search</button>
+    </div>
+    <p style="font-size:11px;color:#555;margin-top:12px;">💡 Tip: Use YouTube Mode (▶ button) to watch YouTube videos!</p>
+  `;
+  
+  // Re-bind search
+  document.getElementById('searchInput2').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchFromInput(e.target.value);
+  });
+}
+
+function searchFromInput(query) {
+  if (!query) return;
+  navigate('https://www.google.com/search?q=' + encodeURIComponent(query));
+}
+
+function closeTab(id, e) {
+  if (e) e.stopPropagation();
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tabs.splice(idx, 1);
+  if (tabs.length === 0) createTab('', true);
+  else if (activeTabId === id) switchTab(tabs[Math.min(idx, tabs.length - 1)].id);
+  else renderTabs();
+}
+
+function renderTabs() {
+  tabsContainer.innerHTML = '';
+  tabs.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'tab' + (t.id === activeTabId ? ' active' : '');
+    d.onclick = () => switchTab(t.id);
+    const s = document.createElement('span');
+    s.textContent = (t.title || 'New Tab').length > 15 ? (t.title || 'New Tab').slice(0, 13) + '…' : (t.title || 'New Tab');
+    d.appendChild(s);
+    const c = document.createElement('span');
+    c.className = 'tc'; c.textContent = '✕';
+    c.onclick = (ev) => closeTab(t.id, ev);
+    d.appendChild(c);
+    tabsContainer.appendChild(d);
+  });
+}
+
+document.getElementById('newTabBtn').onclick = () => createTab('', true);
+
+// ===== NAVIGATION =====
+function navigate(url) {
+  if (!url) return;
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab) return;
+  
+  let finalUrl = url.trim();
+  
+  // If no protocol, check if it's a domain or search
+  if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.startsWith('about:')) {
+    if (finalUrl.includes('.') && !finalUrl.includes(' ') && finalUrl.split(' ').length === 1) {
+      finalUrl = 'https://' + finalUrl;
+    } else {
+      finalUrl = 'https://www.google.com/search?q=' + encodeURIComponent(finalUrl);
+    }
+  }
+  
+  tab.url = finalUrl;
+  tab.history.push(finalUrl);
+  tab.histIdx = tab.history.length - 1;
+  
+  loadTab(tab);
+  renderTabs();
+}
+
+document.getElementById('goBtn').onclick = () => {
+  const v = urlbar.value.trim();
+  if (v) navigate(v);
+};
+
+urlbar.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = urlbar.value.trim();
+    if (v) navigate(v);
+  }
+});
+
+// ===== BOOKMARKS =====
+document.querySelectorAll('.bm').forEach(b => {
+  b.addEventListener('click', () => navigate(b.dataset.url));
+});
+
+// ===== OVERLAY SEARCH =====
+document.getElementById('searchBtn').onclick = () => {
+  const v = document.getElementById('searchInput').value.trim();
+  if (v) navigate(v);
+};
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = document.getElementById('searchInput').value.trim();
+    if (v) navigate(v);
+  }
+});
+
+// ===== TOOLBAR BUTTONS =====
+document.getElementById('backBtn').onclick = () => {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab || tab.histIdx <= 0) return;
+  tab.histIdx--;
+  tab.url = tab.history[tab.histIdx];
+  loadTab(tab);
+};
+
+document.getElementById('fwdBtn').onclick = () => {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab || tab.histIdx >= tab.history.length - 1) return;
+  tab.histIdx++;
+  tab.url = tab.history[tab.histIdx];
+  loadTab(tab);
+};
+
+document.getElementById('refBtn').onclick = () => {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab || !tab.url) return;
+  frame.src = 'about:blank';
+  setTimeout(() => { frame.src = tab.url; }, 50);
+};
+
+document.getElementById('homeBtn').onclick = () => navigate('https://www.google.com');
+
+document.getElementById('ytBtn').onclick = () => openYouTubeMode();
+
+// ===== YOUTUBE MODE =====
+function isYoutubeUrl(url) {
+  return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+}
+
+function openYouTubeMode(url) {
+  frame.style.display = 'none';
+  overlay.classList.remove('show');
+  ytMode.classList.add('show');
+  document.getElementById('statusLeft').textContent = '▶ YouTube Mode';
+  
+  if (url) {
+    const vid = extractVideoId(url);
+    if (vid) {
+      ytInput.value = vid;
+      loadVideoEmbed(vid);
+    }
+  }
+}
+
+function closeYouTubeMode() {
+  ytMode.classList.remove('show');
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (tab && tab.url) loadTab(tab);
+  else { frame.style.display = 'none'; overlay.classList.add('show'); }
+}
+
+function extractVideoId(input) {
+  if (!input) return null;
+  // Try patterns
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  for (const p of patterns) {
+    const m = input.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function loadYouTube() {
+  const input = ytInput.value.trim();
+  if (!input) return;
+  
+  const vid = extractVideoId(input);
+  if (vid) {
+    loadVideoEmbed(vid);
+  } else {
+    // Search YouTube
+    navigate('https://www.youtube.com/results?search_query=' + encodeURIComponent(input));
+    closeYouTubeMode();
+  }
+}
+
+function loadVideoEmbed(videoId) {
+  ytPlaceholder.style.display = 'none';
+  const old = ytPlayerDiv.querySelector('iframe');
+  if (old) old.remove();
+  
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0';
+  iframe.allow = 'autoplay; encrypted-media; fullscreen';
+  iframe.allowFullscreen = true;
+  ytPlayerDiv.appendChild(iframe);
+  
+  document.getElementById('statusLeft').textContent = '▶ Playing YouTube: ' + videoId;
+}
+
+ytInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadYouTube();
+});
+
+// ===== FRAME LOAD HANDLER =====
+frame.addEventListener('load', () => {
+  try {
+    const doc = frame.contentDocument || frame.contentWindow?.document;
+    if (doc && doc.body) {
+      const title = doc.title || currentUrl;
+      const tab = tabs.find(t => t.id === activeTabId);
+      if (tab && currentUrl && currentUrl !== 'about:blank') {
+        tab.title = title;
+        renderTabs();
+        document.getElementById('statusLeft').textContent = currentUrl;
+      }
+    }
+  } catch(e) {
+    // Blocked - will be caught by timeout in loadTab
+  }
+});
+
+// ===== INIT =====
+createTab('', true);  // Start with welcome overlay
+</script>
+
+</body>
+</html>
+
