@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Memory Game</title>
+  <style>
+    html,body{height:100%;margin:0;background:#2c3e50;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+    #container{position:relative;text-align:center}
+    #grid{display:grid;grid-template-columns:repeat(4,100px);gap:10px;margin:20px auto;background:#34495e;padding:20px;border-radius:10px}
+    .card{width:100px;height:100px;background:#3498db;border:none;border-radius:8px;cursor:pointer;font-size:40px;display:flex;align-items:center;justify-content:center;transition:0.2s;color:#3498db}
+    .card:active{transform:scale(0.95)}
+    .card.flipped{background:#2ecc71;color:#fff}
+    .card.matched{background:#95a5a6;cursor:default}
+    #overlay{position:absolute;color:#fff;font:20px/1.2 monospace;text-align:center;pointer-events:none;width:100%;left:0}
+    #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #back-btn:hover{background:white;color:black}
+    #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+    #bestDisplay{position:fixed;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1 style="color:#ecf0f1;margin-top:0">🎮 Memory Game</h1>
+    <div id="grid"></div>
+    <div id="overlay"></div>
+  </div>
+  <div id="scoreDisplay">Moves: 0</div>
+  <div id="bestDisplay">Best: 0</div>
+  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+
+<script>
+const grid = document.getElementById('grid');
+const overlay = document.getElementById('overlay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const bestDisplay = document.getElementById('bestDisplay');
+
+const EMOJIS = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮'];
+let cards = [];
+let flipped = [];
+let matched = 0;
+let moves = 0;
+let best = parseInt(localStorage.getItem('memory_best'), 10) || 0;
+let gameRunning = false;
+
+bestDisplay.textContent = 'Best: ' + best;
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    let j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function init(){
+  grid.innerHTML = '';
+  cards = shuffle([...EMOJIS, ...EMOJIS]);
+  flipped = [];
+  matched = 0;
+  moves = 0;
+  gameRunning = true;
+  scoreDisplay.textContent = 'Moves: 0';
+  overlay.innerHTML = '';
+  
+  cards.forEach((emoji, idx) => {
+    let card = document.createElement('button');
+    card.className = 'card';
+    card.textContent = '?';
+    card.dataset.emoji = emoji;
+    card.dataset.idx = idx;
+    card.onclick = () => flip(card, idx);
+    grid.appendChild(card);
+  });
+}
+
+function flip(card, idx){
+  if (!gameRunning || flipped.length >= 2 || flipped.includes(idx) || card.classList.contains('matched')) return;
+  
+  card.textContent = card.dataset.emoji;
+  card.classList.add('flipped');
+  flipped.push(idx);
+  
+  if (flipped.length === 2){
+    moves++;
+    scoreDisplay.textContent = 'Moves: ' + moves;
+    
+    let card1 = document.querySelector(`[data-idx="${flipped[0]}"]`);
+    let card2 = document.querySelector(`[data-idx="${flipped[1]}"]`);
+    
+    if (card1.dataset.emoji === card2.dataset.emoji){
+      matched += 2;
+      card1.classList.add('matched');
+      card2.classList.add('matched');
+      flipped = [];
+      
+      if (matched === cards.length){
+        gameRunning = false;
+        best = Math.min(best === 0 ? moves : best, moves);
+        localStorage.setItem('memory_best', best);
+        bestDisplay.textContent = 'Best: ' + best;
+        overlay.innerHTML = '<div style="font-size:24px;color:#2ecc71">✓ WIN!</div><div style="color:#ecf0f1">Moves: '+moves+'<br>Best: '+best+'<br><br>Click to restart</div>';
+      }
+    } else {
+      setTimeout(()=>{
+        card1.textContent = '?';
+        card2.textContent = '?';
+        card1.classList.remove('flipped');
+        card2.classList.remove('flipped');
+        flipped = [];
+      }, 800);
+    }
+  }
+}
+
+grid.onclick = (e)=>{ if (!gameRunning && e.target.textContent === '?') init(); };
+init();
+</script>
+</body>
+</html>

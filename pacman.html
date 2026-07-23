@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+  <title>Pac-Man — Clone</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; margin:0; padding:0; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:none; }
+    #wrap { position:relative; display:flex; flex-direction:column; align-items:center; height:100%; width:100%; }
+    canvas { display:block; flex-shrink:0; touch-action:none; -webkit-touch-callout:none; }
+    #dpad { display:none; flex:1 1 auto; width:100%; max-width:800px; flex-direction:row; user-select:none; -webkit-user-select:none; gap:0; min-height:0; }
+    #dpad-left, #dpad-right { flex:1; display:flex; min-height:0; overflow:hidden; }
+    #dpad-center { flex:0 0 200px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .dbtn { background:rgba(0,0,0,0.45); border:2px solid rgba(255,255,255,0.35); color:#fff; font-size:36px; text-align:center; cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent; display:flex; align-items:center; justify-content:center; user-select:none; }
+    #dbu { flex:1; border-bottom:none; }
+    #dbd { flex:1; border-top:none; }
+    #dpad-divider { flex:0 0 2px; background:rgba(255,255,255,0.5); }
+    #dbl { flex:1; border-right:none; }
+    #dbr { flex:1; border-left:none; }
+    #overlay{position:absolute;color:#fff;font:20px/1.2 monospace;text-align:center;pointer-events:none;top:50%;left:50%;transform:translate(-50%,-50%)}
+    #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #back-btn:hover{background:white;color:black}
+    #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+    #bestDisplay{position:fixed;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="560" height="560"></canvas>
+    <div id="dpad">
+      <button id="dbl" class="dbtn">◀</button>
+      <div id="dpad-center">
+        <button id="dbu" class="dbtn">▲</button>
+        <div id="dpad-divider"></div>
+        <button id="dbd" class="dbtn">▼</button>
+      </div>
+      <button id="dbr" class="dbtn">▶</button>
+    </div>
+    <div id="overlay"></div>
+  </div>
+  <div id="scoreDisplay">Score: 0</div>
+  <div id="bestDisplay">Best: 0</div>
+  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const dpad = document.getElementById('dpad');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const bestDisplay = document.getElementById('bestDisplay');
+
+const TILE = 20;
+const COLS = 28, ROWS = 28;
+let maze = Array(ROWS).fill().map(() => Array(COLS).fill(1));
+let pellets = Array(ROWS).fill().map(() => Array(COLS).fill(1));
+let score = 0, best = parseInt(localStorage.getItem('pacman_best'), 10) || 0;
+let gameRunning = false;
+
+bestDisplay.textContent = 'Best: ' + best;
+
+// Pac-Man
+let pac = {x:13, y:13, dx:0, dy:0, ndx:0, ndy:0};
+// Ghosts
+let ghosts = [
+  {x:13, y:10, dx:1, dy:0, color:'#ff0000'},
+  {x:12, y:13, dx:0, dy:1, color:'#ffb8ff'},
+  {x:14, y:13, dx:-1, dy:0, color:'#00ffff'},
+];
+
+function createMaze(){
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      maze[r][c] = (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1 || (r > 5 && r < ROWS-6 && c > 8 && c < COLS-8 && (r === 10 || c === 10 || c === COLS-10))) ? 1 : 0;
+      pellets[r][c] = maze[r][c] ? 0 : 1;
+    }
+  }
+}
+
+function reset(){
+  createMaze();
+  score = 0;
+  pac.x = 13; pac.y = 13; pac.dx = 0; pac.dy = 0;
+  ghosts.forEach((g, i) => { g.x = 13 + (i-1); g.y = 10 + i; });
+  gameRunning = true;
+  scoreDisplay.textContent = 'Score: 0';
+  overlay.innerHTML = '';
+}
+
+function update(){
+  if (!gameRunning) return;
+  
+  if (pac.ndx !== 0 || pac.ndy !== 0) {
+    if (!maze[pac.y + pac.ndy] || !maze[pac.y + pac.ndy][pac.x + pac.ndx]) {
+      pac.dx = pac.ndx; pac.dy = pac.ndy;
+    }
+    pac.ndx = pac.ndy = 0;
+  }
+  
+  if (!maze[pac.y + pac.dy]?.[pac.x + pac.dx]) {
+    pac.x += pac.dx;
+    pac.y += pac.dy;
+  }
+  
+  if (pellets[pac.y]?.[pac.x]) {
+    pellets[pac.y][pac.x] = 0;
+    score += 10;
+    scoreDisplay.textContent = 'Score: ' + score;
+  }
+  
+  // Simple ghost AI
+  ghosts.forEach(g => {
+    if (Math.random() < 0.05) {
+      let moves = [[0,1],[0,-1],[1,0],[-1,0]].filter(m => !maze[g.y + m[1]]?.[g.x + m[0]]);
+      if (moves.length) { let m = moves[Math.floor(Math.random() * moves.length)]; g.dx = m[0]; g.dy = m[1]; }
+    }
+    if (!maze[g.y + g.dy]?.[g.x + g.dx]) { g.x += g.dx; g.y += g.dy; }
+    
+    if (g.x === pac.x && g.y === pac.y) {
+      gameRunning = false;
+      best = Math.max(best, score);
+      localStorage.setItem('pacman_best', best);
+      bestDisplay.textContent = 'Best: ' + best;
+      overlay.innerHTML = '<div style="font-size:28px;">👻 GAME OVER</div><div>Score: '+score+'<br>Best: '+best+'<br><br>Click to restart</div>';
+    }
+  });
+}
+
+function draw(){
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (maze[r][c]) {
+        ctx.fillStyle = '#0077ff';
+        ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+      } else if (pellets[r][c]) {
+        ctx.fillStyle = '#ffb897';
+        ctx.beginPath();
+        ctx.arc(c * TILE + TILE/2, r * TILE + TILE/2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  // Pac-Man
+  ctx.fillStyle = '#ffff00';
+  ctx.beginPath();
+  ctx.arc(pac.x * TILE + TILE/2, pac.y * TILE + TILE/2, TILE/2.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Ghosts
+  ghosts.forEach(g => {
+    ctx.fillStyle = g.color;
+    ctx.beginPath();
+    ctx.arc(g.x * TILE + TILE/2, g.y * TILE + TILE/2, TILE/2.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Mobile d-pad
+let dpadShow = false;
+function checkMobile(){
+  dpadShow = window.innerWidth < 800;
+  dpad.style.display = dpadShow ? 'flex' : 'none';
+}
+
+document.getElementById('dbu').onmousedown = () => { pac.ndy = -1; pac.ndx = 0; };
+document.getElementById('dbd').onmousedown = () => { pac.ndy = 1; pac.ndx = 0; };
+document.getElementById('dbl').onmousedown = () => { pac.ndx = -1; pac.ndy = 0; };
+document.getElementById('dbr').onmousedown = () => { pac.ndx = 1; pac.ndy = 0; };
+
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'ArrowUp') pac.ndy = -1;
+  if (e.key === 'ArrowDown') pac.ndy = 1;
+  if (e.key === 'ArrowLeft') pac.ndx = -1;
+  if (e.key === 'ArrowRight') pac.ndx = 1;
+});
+
+canvas.addEventListener('click', ()=>{ if (!gameRunning) reset(); });
+
+window.addEventListener('resize', checkMobile);
+checkMobile();
+reset();
+loop();
+</script>
+</body>
+</html>
