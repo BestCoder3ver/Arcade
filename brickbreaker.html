@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Brick Breaker</title>
+  <style>
+    html,body{height:100%;margin:0;background:#1a1a2e;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+    canvas{background:#16213e;border:3px solid #00d4ff;box-shadow:0 0 20px #00d4ff}
+    #overlay{position:absolute;color:#00d4ff;font:18px/1.2 monospace;text-align:center;pointer-events:none}
+    #back-btn{position:absolute;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #back-btn:hover{background:white;color:black}
+    #scoreDisplay{position:absolute;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#00d4ff;font-size:14px;z-index:90;font-family:monospace}
+    #bestDisplay{position:absolute;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#00d4ff;font-size:14px;z-index:90;font-family:monospace}
+  </style>
+</head>
+<body>
+  <canvas id="game" width="480" height="640"></canvas>
+  <div id="overlay"></div>
+  <div id="scoreDisplay">Score: 0</div>
+  <div id="bestDisplay">Best: 0</div>
+  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const bestDisplay = document.getElementById('bestDisplay');
+let W = canvas.width, H = canvas.height;
+
+let paddle = {x:W/2-40, y:H-30, w:80, h:15, speed:6};
+let ball = {x:W/2, y:H-60, r:6, dx:3, dy:-3};
+let bricks = [];
+let score = 0, best = parseInt(localStorage.getItem('brickbreaker_best'), 10) || 0;
+let gameRunning = false, gameOver = false;
+let keys = {};
+
+bestDisplay.textContent = 'Best: ' + best;
+
+function spawnBricks(){
+  bricks = [];
+  const colors = ['#ff6b6b','#4ecdc4','#45b7d1','#ffd93d','#a8e6cf'];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 8; c++) {
+      bricks.push({x:c*55+10, y:r*30+20, w:50, h:25, color:colors[r % colors.length]});
+    }
+  }
+}
+
+function reset(){
+  spawnBricks();
+  score = 0;
+  gameRunning = true;
+  gameOver = false;
+  ball.x = W/2;
+  ball.y = H - 60;
+  ball.dx = 3;
+  ball.dy = -3;
+  scoreDisplay.textContent = 'Score: 0';
+  overlay.innerHTML = '';
+}
+
+function update(){
+  if (!gameRunning) return;
+  
+  if (keys['ArrowLeft']) paddle.x = Math.max(0, paddle.x - paddle.speed);
+  if (keys['ArrowRight']) paddle.x = Math.min(W - paddle.w, paddle.x + paddle.speed);
+  
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+  
+  if (ball.x - ball.r < 0 || ball.x + ball.r > W) ball.dx = -ball.dx;
+  if (ball.y - ball.r < 0) ball.dy = -ball.dy;
+  
+  if (ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y < paddle.y + paddle.h) {
+    ball.dy = -ball.dy;
+    ball.dx += (ball.x - (paddle.x + paddle.w/2)) * 0.05;
+    ball.y = paddle.y - ball.r;
+  }
+  
+  for (let i = bricks.length - 1; i >= 0; i--) {
+    let b = bricks[i];
+    if (ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+      ball.dy = -ball.dy;
+      bricks.splice(i, 1);
+      score += 10;
+      scoreDisplay.textContent = 'Score: ' + score;
+      break;
+    }
+  }
+  
+  if (ball.y > H) {
+    gameRunning = false;
+    gameOver = true;
+    best = Math.max(best, score);
+    localStorage.setItem('brickbreaker_best', best);
+    bestDisplay.textContent = 'Best: ' + best;
+    overlay.innerHTML = '<div>💔 GAME OVER</div><div>Score: '+score+'<br>Best: '+best+'<br><br>Click to restart</div>';
+  }
+  
+  if (bricks.length === 0) {
+    gameRunning = false;
+    overlay.innerHTML = '<div>🎉 LEVEL COMPLETE!</div><div>Score: '+score+'<br><br>Click to play again</div>';
+  }
+}
+
+function draw(){
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, 0, W, H);
+  
+  ctx.fillStyle = '#00d4ff';
+  ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+  
+  ctx.fillStyle = '#ffd93d';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fill();
+  
+  bricks.forEach(b => {
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+  });
+  
+  if (!gameRunning && !gameOver) {
+    overlay.innerHTML = '<div style="font-size:24px;">🧱 BRICK BREAKER</div><div>Click to start<br>Arrow keys to move</div>';
+  }
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener('keydown', (e)=>{ keys[e.key] = true; });
+document.addEventListener('keyup', (e)=>{ keys[e.key] = false; });
+canvas.addEventListener('click', ()=>{ if (!gameRunning) reset(); });
+
+reset();
+loop();
+</script>
+</body>
+</html>
