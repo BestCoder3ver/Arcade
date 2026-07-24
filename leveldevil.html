@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Level Devil</title>
 <style>
   @font-face {
@@ -201,24 +202,49 @@ const dbd = document.getElementById('dbd');
 const dbl = document.getElementById('dpad-left');
 const dbr = document.getElementById('dpad-right');
 
-// D-pad event handlers
-['mousedown','touchstart'].forEach(e => {
-  dbu.addEventListener(e, (ev) => { 
-    ev.preventDefault(); 
-    if(state==="menu") startGame();
-    else keys.ArrowUp = true;
-  });
-  dbd.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowDown'] = true; });
-  dbl.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowLeft'] = true; });
-  dbr.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowRight'] = true; });
-});
+function pressControl(key){
+  if(state==="menu" && key==="ArrowUp"){
+    startGame();
+  }
+  keys[key]=true;
+}
 
-['mouseup','touchend'].forEach(e => {
-  dbu.addEventListener(e, (ev) => { ev.preventDefault(); keys.ArrowUp = false; });
-  dbd.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowDown'] = false; });
-  dbl.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowLeft'] = false; });
-  dbr.addEventListener(e, (ev) => { ev.preventDefault(); keys['ArrowRight'] = false; });
-});
+function releaseControl(key){
+  keys[key]=false;
+}
+
+function bindDpadButton(el,key){
+  const press = (ev) => {
+    ev.preventDefault();
+    pressControl(key);
+    if(ev.pointerId !== undefined && el.setPointerCapture){
+      el.setPointerCapture(ev.pointerId);
+    }
+  };
+  const release = (ev) => {
+    ev.preventDefault();
+    releaseControl(key);
+  };
+
+  if(window.PointerEvent){
+    el.addEventListener("pointerdown", press);
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    el.addEventListener("lostpointercapture", () => releaseControl(key));
+  }else{
+    el.addEventListener("mousedown", press);
+    el.addEventListener("mouseup", release);
+    el.addEventListener("mouseleave", release);
+    el.addEventListener("touchstart", press, {passive:false});
+    el.addEventListener("touchend", release, {passive:false});
+    el.addEventListener("touchcancel", release, {passive:false});
+  }
+}
+
+bindDpadButton(dbu,"ArrowUp");
+bindDpadButton(dbd,"ArrowDown");
+bindDpadButton(dbl,"ArrowLeft");
+bindDpadButton(dbr,"ArrowRight");
 
 document.addEventListener("keydown",e=>{
   keys[e.key]=true;
@@ -230,13 +256,36 @@ document.addEventListener("keydown",e=>{
   }
 });
 document.addEventListener("keyup",e=>keys[e.key]=false);
-canvas.addEventListener("mousemove",e=>{
+function setCanvasPointer(e){
   const r=canvas.getBoundingClientRect();
   mouse.x=e.clientX-r.left;
   mouse.y=e.clientY-r.top;
+}
+canvas.addEventListener("mousemove",setCanvasPointer);
+canvas.addEventListener("mousedown",e=>{
+  setCanvasPointer(e);
+  mouse.click=true;
 });
-canvas.addEventListener("mousedown",()=>mouse.click=true);
-canvas.addEventListener("mouseup",()=>mouse.click=false);
+canvas.addEventListener("mouseup",e=>{
+  setCanvasPointer(e);
+  mouse.click=true;
+});
+canvas.addEventListener("touchstart",e=>{
+  e.preventDefault();
+  const t=e.touches[0];
+  if(!t) return;
+  setCanvasPointer(t);
+}, {passive:false});
+canvas.addEventListener("touchend",e=>{
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  if(!t) return;
+  setCanvasPointer(t);
+  mouse.click=true;
+}, {passive:false});
+canvas.addEventListener("touchcancel",e=>{
+  e.preventDefault();
+}, {passive:false});
 
 /* ========= LEVELS ========= */
 const levels=[

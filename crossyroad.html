@@ -639,11 +639,25 @@ canvas.addEventListener('touchstart', function(e) {
   }
 }, {passive:true});
 
-function dpadDir(dir){initAc();if(gs==='playing')kbuf=dir;}
-document.getElementById('dbu').addEventListener('touchstart',e=>{e.preventDefault();dpadDir('up');},{passive:false});
-document.getElementById('dbd').addEventListener('touchstart',e=>{e.preventDefault();dpadDir('dn');},{passive:false});
-document.getElementById('dbl').addEventListener('touchstart',e=>{e.preventDefault();dpadDir('lt');},{passive:false});
-document.getElementById('dbr').addEventListener('touchstart',e=>{e.preventDefault();dpadDir('rt');},{passive:false});
+function dpadDir(dir){
+  initAc();
+  if(gs==='title') startGame();
+  if(gs==='playing') kbuf=dir;
+}
+function bindDpad(id,dir){
+  const el=document.getElementById(id);
+  const press=e=>{e.preventDefault();dpadDir(dir);};
+  if(window.PointerEvent){
+    el.addEventListener('pointerdown',press);
+  }else{
+    el.addEventListener('touchstart',press,{passive:false});
+    el.addEventListener('mousedown',press);
+  }
+}
+bindDpad('dbu','up');
+bindDpad('dbd','dn');
+bindDpad('dbl','lt');
+bindDpad('dbr','rt');
 
 // ===== PERSIST =====
 function saveData() {

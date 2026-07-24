@@ -428,28 +428,38 @@ document.addEventListener("keydown",(e)=>{
 
 });
 
-game.addEventListener("touchstart",(e)=>{
-
+function pointerLane(clientX){
     if(!playing) return;
 
     const rect = game.getBoundingClientRect();
+    const x = clientX - rect.left;
+    let lane = Math.floor(x / (rect.width / 4));
 
-    for(const touch of e.touches){
+    if(lane < 0) lane = 0;
+    if(lane > 3) lane = 3;
 
-        const x = touch.clientX - rect.left;
+    pressLane(lane);
+}
 
-        let lane = Math.floor(x / (rect.width / 4));
+if(window.PointerEvent){
+    game.addEventListener("pointerdown",(e)=>{
+        e.preventDefault();
+        pointerLane(e.clientX);
+    });
+}else{
+    game.addEventListener("mousedown",(e)=>{
+        e.preventDefault();
+        pointerLane(e.clientX);
+    });
 
-        if(lane < 0) lane = 0;
-        if(lane > 3) lane = 3;
+    game.addEventListener("touchstart",(e)=>{
+        for(const touch of e.touches){
+            pointerLane(touch.clientX);
+        }
 
-        pressLane(lane);
-
-    }
-
-    e.preventDefault();
-
-},{passive:false});
+        e.preventDefault();
+    },{passive:false});
+}
 
 function endGame(){
 

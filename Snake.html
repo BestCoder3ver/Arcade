@@ -75,10 +75,25 @@ canvas {
     background: #050505;
     border: 4px solid cyan;
     box-shadow: 0 0 25px cyan;
+    width:min(95vw,450px);
     max-width:95%;
+    max-height:calc(100vh - 225px);
     height:auto !important;
     flex-shrink:0;
     margin-top:2px;
+    object-fit:contain;
+}
+
+@media (max-height:760px), (max-width:560px) {
+  #wrap {
+    padding-bottom:170px;
+  }
+
+  canvas {
+    width:min(92vw,400px);
+    max-height:calc(100vh - 205px);
+    margin-top:-10px;
+  }
 }
 
 #gameOverScreen{
