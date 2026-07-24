@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Whack-a-Mole</title>
+  <style>
+    html,body{height:100%;margin:0;background:#228B22;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+    #container{text-align:center}
+    #grid{display:grid;grid-template-columns:repeat(3,120px);gap:10px;margin:20px auto;background:#1a6b1a;padding:20px;border-radius:10px}
+    .hole{width:120px;height:120px;background:#8b6f47;border:3px solid #654321;border-radius:50%;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .hole.active::after{content:'🦡';font-size:60px;animation:pop 0.3s ease-out;position:absolute}
+    @keyframes pop{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+    #overlay{color:#fff;font:20px/1.2 Arial;text-align:center;pointer-events:none;position:absolute;width:100%;left:0}
+    #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #back-btn:hover{background:white;color:black}
+    #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+    #bestDisplay{position:fixed;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+    #restartBtn{position:fixed;right:320px;top:12px;padding:8px 16px;font-size:14px;background:#27ae60;border:none;border-radius:8px;cursor:pointer;z-index:100;color:#fff}
+    #restartBtn:hover{background:#229954}
+    #timerBar{width:300px;height:20px;background:#555;margin:10px auto;border-radius:10px;overflow:hidden}
+    #timerFill{height:100%;background:#ff6b6b;width:100%;transition:width 0.1s linear}
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1 style="color:#fff;margin-top:0">🔨 WHACK-A-MOLE 🔨</h1>
+    <div id="timerBar"><div id="timerFill"></div></div>
+    <div id="grid"></div>
+    <div id="overlay"></div>
+  </div>
+  <div id="scoreDisplay">Score: 0</div>
+  <div id="bestDisplay">Best: 0</div>
+  <button id="restartBtn" onclick="init()">Restart</button>
+  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+
+<script>
+const grid = document.getElementById('grid');
+const overlay = document.getElementById('overlay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const bestDisplay = document.getElementById('bestDisplay');
+const timerFill = document.getElementById('timerFill');
+
+let holes = [];
+let score = 0, best = parseInt(localStorage.getItem('mole_best'), 10) || 0;
+let gameRunning = false;
+let timeLeft = 30;
+let gameStartTime = 0;
+
+bestDisplay.textContent = 'Best: ' + best;
+
+function init(){
+  grid.innerHTML = '';
+  holes = [];
+  score = 0;
+  timeLeft = 30;
+  gameRunning = true;
+  gameStartTime = Date.now();
+  scoreDisplay.textContent = 'Score: 0';
+  overlay.innerHTML = '';
+  
+  for (let i = 0; i < 9; i++) {
+    let hole = document.createElement('div');
+    hole.className = 'hole';
+    hole.onclick = () => {
+      if (hole.classList.contains('active')) {
+        score++;
+        hole.classList.remove('active');
+        scoreDisplay.textContent = 'Score: ' + score;
+      }
+    };
+    grid.appendChild(hole);
+    holes.push(hole);
+  }
+  
+  spawnMole();
+}
+
+function spawnMole(){
+  if (!gameRunning) return;
+  holes.forEach(h => h.classList.remove('active'));
+  let h = holes[Math.floor(Math.random() * holes.length)];
+  h.classList.add('active');
+  setTimeout(() => h.classList.remove('active'), 800);
+  setTimeout(spawnMole, 600 + Math.random() * 400);
+}
+
+function updateTimer(){
+  if (!gameRunning) return;
+  timeLeft = Math.max(0, 30 - Math.floor((Date.now() - gameStartTime) / 1000));
+  timerFill.style.width = (timeLeft / 30 * 100) + '%';
+  
+  if (timeLeft <= 0) {
+    gameRunning = false;
+    best = Math.max(best, score);
+    localStorage.setItem('mole_best', best);
+    bestDisplay.textContent = 'Best: ' + best;
+    overlay.innerHTML = '<div style="font-size:24px;">⏱ TIME\'S UP!</div><div style="color:#ecf0f1">Score: '+score+'<br>Best: '+best+'<br><br>Click to play again</div>';
+  }
+}
+
+grid.parentElement.onclick = (e)=>{ if (!gameRunning && e.target === grid.parentElement) init(); };
+
+setInterval(updateTimer, 100);
+init();
+</script>
+</body>
+</html>

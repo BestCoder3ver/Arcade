@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rhythm Game</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-user-select:none;
+    user-select:none;
+    touch-action:none;
+}
+
+body{
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial,Helvetica,sans-serif;
+    color:white;
+}
+
+#game{
+    position:relative;
+    width:95vw;
+    max-width:520px;
+
+    height:85vh;
+    max-height:900px;
+
+    background:#222;
+    overflow:hidden;
+    border:4px solid #555;
+}
+
+#score{
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:34px;
+    font-weight:bold;
+    z-index:100;
+}
+
+/* ---------- LANES ---------- */
+
+.lane{
+    position:absolute;
+    top:0;
+    width:25%;
+    height:900px;
+    background:#2b2b2b;
+}
+
+.line{
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:2px;
+    background:white;
+    z-index:20;
+}
+
+/* ---------- HIT LINE ---------- */
+
+#judgeLine{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:180px;
+    height:3px;
+    background:#888;
+    z-index:40;
+}
+
+/* ---------- HIT PADS ---------- */
+
+.pad{
+    position:absolute;
+    bottom:140px;
+    width:25%;
+    height:80px;
+    background:transparent;
+    z-index:35;
+    transition:.08s;
+}
+
+/* ---------- NOTES ---------- */
+
+.note{
+    position:absolute;
+    width:calc(25% - 4px);;
+    height:80px;
+    background:#00ff66;
+    border-radius:10px;
+    z-index:30;
+}
+
+/* ---------- GAME OVER ---------- */
+
+#gameover{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.88);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:200;
+    font-size:48px;
+    text-align:center;
+}
+
+button{
+    margin-top:30px;
+    font-size:28px;
+    padding:12px 28px;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="score">Score: 0</div>
+
+<div class="lane" style="left:0%"></div>
+<div class="lane" style="left:25%"></div>
+<div class="lane" style="left:50%"></div>
+<div class="lane" style="left:75%"></div>
+
+<div class="line" style="left:0%"></div>
+<div class="line" style="left:25%"></div>
+<div class="line" style="left:50%"></div>
+<div class="line" style="left:75%"></div>
+<div class="line" style="left:100%"></div>
+
+<div id="judgeLine"></div>
+
+<div class="pad" id="pad0" style="left:0%"></div>
+<div class="pad" id="pad1" style="left:25%"></div>
+<div class="pad" id="pad2" style="left:50%"></div>
+<div class="pad" id="pad3" style="left:75%"></div>
+
+<div id="gameover">
+    GAME OVER
+    <br><br>
+
+    <button onclick="location.reload()">
+        Play Again
+    </button>
+
+    <br><br>
+
+    <button onclick="location.href='index.html'">
+        Return to Hub
+    </button>
+</div>
+
+<script>
+
+// ===== GLOBAL AUTH CHECK =====
+(function() {
+  const unlockTime = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+  if (Date.now() >= unlockTime) {
+    localStorage.removeItem('globalUnlockTime');
+    window.location.href = 'index.html?needauth=1';
+    return;
+  }
+  setInterval(function() {
+    const t = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
+    if (Date.now() >= t) {
+      localStorage.removeItem('globalUnlockTime');
+      window.location.href = 'index.html?needauth=1';
+    }
+  }, 1000);
+})();
+
+const game = document.getElementById("game");
+const scoreText = document.getElementById("score");
+const gameOver = document.getElementById("gameover");
+
+const pads = [
+    document.getElementById("pad0"),
+    document.getElementById("pad1"),
+    document.getElementById("pad2"),
+    document.getElementById("pad3")
+];
+
+function getLaneX(lane){
+    return lane * (game.clientWidth / 4);
+}
+
+const keyMap = {
+    "d":0,
+    "f":1,
+    "j":2,
+    "k":3
+};
+
+let notes = [];
+let score = 0;
+let speed = 4;
+let spawnDelay = 700;
+let playing = true;
+
+let HIT_Y = 0;
+
+function updateHitY(){
+    const judgeLine = document.getElementById("judgeLine");
+    HIT_Y = judgeLine.offsetTop + judgeLine.offsetHeight / 2;
+}
+
+updateHitY();
+window.addEventListener("resize", updateHitY);
+window.addEventListener("load", updateHitY);
+
+function spawnNote(){
+
+    if(!playing) return;
+
+    // Prevent notes from spawning too close together
+    if(notes.length){
+        const newest = notes[notes.length-1];
+        if(newest.y < 140){
+            return;
+        }
+    }
+
+    const lane = Math.floor(Math.random()*4);
+
+    const note = document.createElement("div");
+    note.className = "note";
+    note.style.left = getLaneX(lane) + "px";
+    note.style.top = "-80px";
+
+    game.appendChild(note);
+
+    notes.push({
+        lane: lane,
+        y: -80,
+        element: note
+    });
+
+}
+
+function spawnLoop(){
+
+    if(!playing) return;
+
+    spawnNote();
+
+    spawnDelay = Math.max(180,700-score*8);
+
+    setTimeout(spawnLoop,spawnDelay);
+
+}
+
+spawnLoop();
+
+function update(){
+
+    if(!playing) return;
+
+    speed = 4 + score*0.15;
+
+    for(let i=notes.length-1;i>=0;i--){
+
+        const note = notes[i];
+
+        note.y += speed;
+
+        note.element.style.top = note.y + "px";
+
+        if(note.y + 40 > HIT_Y + 70){
+
+            note.element.style.background = "#ff3333";
+
+            setTimeout(()=>{
+                endGame();
+            },100);
+
+            return;
+        }
+
+    }
+
+    requestAnimationFrame(update);
+
+}
+
+requestAnimationFrame(update);
+
+function flashPad(lane){
+
+    pads[lane].style.background = "#66ff66";
+
+    setTimeout(()=>{
+        pads[lane].style.background = "transparent";
+    },80);
+
+}
+
+function pressLane(lane){
+
+    if(!playing) return;
+
+    flashPad(lane);
+
+    let hit = -1;
+
+    for(let i=0;i<notes.length;i++){
+
+        const note = notes[i];
+
+        if(note.lane !== lane) continue;
+
+        if(Math.abs((note.y+40)-HIT_Y) < 70){
+
+            hit = i;
+            break;
+
+        }
+
+    }
+
+if(hit === -1){
+
+    endGame();
+
+    return;
+}
+
+    notes[hit].element.remove();
+    notes.splice(hit,1);
+
+    score++;
+    scoreText.textContent = "Score: " + score;
+
+}
+
+document.addEventListener("keydown",(e)=>{
+
+    const lane = keyMap[e.key.toLowerCase()];
+
+    if(lane === undefined) return;
+
+    pressLane(lane);
+
+});
+
+game.addEventListener("touchstart",(e)=>{
+
+    if(!playing) return;
+
+    const rect = game.getBoundingClientRect();
+
+    for(const touch of e.touches){
+
+        const x = touch.clientX - rect.left;
+
+        let lane = Math.floor(x / (rect.width / 4));
+
+        if(lane < 0) lane = 0;
+        if(lane > 3) lane = 3;
+
+        pressLane(lane);
+
+    }
+
+    e.preventDefault();
+
+},{passive:false});
+
+function endGame(){
+
+    if(!playing) return;
+
+    playing = false;
+
+    gameOver.style.display = "flex";
+
+}
+
+</script>
+
+</body>
+</html>
