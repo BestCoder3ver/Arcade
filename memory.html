@@ -45,8 +45,54 @@ let matched = 0;
 let moves = 0;
 let best = parseInt(localStorage.getItem('memory_best'), 10) || 0;
 let gameRunning = false;
+let audioCtx;
 
 bestDisplay.textContent = 'Best: ' + best;
+
+function getAudioContext(){
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type = 'sine', volume = 0.12, delay = 0, endFreq){
+  const ctx = getAudioContext();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + delay;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(freq, start);
+  if (endFreq) oscillator.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration);
+}
+
+function playFlipSound(){
+  playTone(520, 0.06, 'triangle', 0.07, 0, 760);
+}
+
+function playMatchSound(){
+  playTone(660, 0.09, 'sine', 0.09);
+  playTone(880, 0.11, 'triangle', 0.08, 0.07);
+  playTone(1320, 0.08, 'sine', 0.045, 0.14);
+}
+
+function playWinSound(){
+  [523.25, 659.25, 783.99, 1046.5].forEach((freq, index) => {
+    playTone(freq, 0.18, 'triangle', 0.09, index * 0.12);
+  });
+  playTone(392, 0.45, 'sine', 0.055, 0.1);
+}
 
 function shuffle(arr){
   for (let i = arr.length - 1; i > 0; i--){
@@ -87,6 +133,7 @@ function flip(card, idx){
   card.textContent = card.dataset.emoji;
   card.classList.add('flipped');
   flipped.push(idx);
+  playFlipSound();
   
   if (flipped.length === 2){
     moves++;
@@ -100,9 +147,11 @@ function flip(card, idx){
       card1.classList.add('matched');
       card2.classList.add('matched');
       flipped = [];
+      playMatchSound();
       
       if (matched === cards.length){
         gameRunning = false;
+        playWinSound();
         if (best === 0 || moves < best) {
           best = moves;
         }
