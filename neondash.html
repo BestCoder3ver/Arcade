@@ -77,11 +77,6 @@ html, body{
 
 <body ontouchstart="">
 
-<!-- 🎵 MUSIC -->
-<audio id="music" loop>
-  <source src="trillium.mp3" type="audio/mpeg">
-</audio>
-
 <!-- 💥 EXPLOSION -->
 <audio id="explosion">
   <source src="explosion.mp3" type="audio/mpeg">
@@ -173,12 +168,148 @@ let gameOver = false;
 let jumping = false;
 let sliding = false;
 
-let music = document.getElementById("music");
 let explosion = document.getElementById("explosion");
+let audioCtx;
+let musicTimer;
+let musicStep = 0;
+const funkBass = [110, 110, 146.83, 110, 164.81, 146.83, 110, 196, 110, 130.81, 146.83, 110, 220, 196, 164.81, 146.83];
+const funkLead = [440, 523.25, 587.33, 659.25, 587.33, 523.25, 440, 392];
 document.getElementById("restartBtn")
     .addEventListener("click", restart);
 
 init();
+
+function getAudioContext(){
+    if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+}
+
+function shapeGain(gain, start, peak, attack, duration){
+    gain.gain.cancelScheduledValues(start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(peak, start + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+}
+
+function neonTone(freq, duration, type, volume, delay = 0, endFreq){
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    const start = ctx.currentTime + delay;
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if(endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1800, start);
+    filter.Q.setValueAtTime(2.2, start);
+
+    shapeGain(gain, start, volume, 0.008, duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration);
+}
+
+function playDrum(kind, delay = 0){
+    const ctx = getAudioContext();
+    const start = ctx.currentTime + delay;
+    const gain = ctx.createGain();
+
+    if(kind === "kick"){
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(120, start);
+        osc.frequency.exponentialRampToValueAtTime(42, start + 0.12);
+        shapeGain(gain, start, 0.16, 0.004, 0.14);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.14);
+        return;
+    }
+
+    const noise = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < data.length; i++){
+        data[i] = Math.random() * 2 - 1;
+    }
+
+    noise.buffer = buffer;
+    filter.type = kind === "snare" ? "bandpass" : "highpass";
+    filter.frequency.setValueAtTime(kind === "snare" ? 1800 : 6500, start);
+    filter.Q.setValueAtTime(kind === "snare" ? 0.8 : 1.4, start);
+    shapeGain(gain, start, kind === "snare" ? 0.09 : 0.035, 0.003, kind === "snare" ? 0.09 : 0.035);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(start);
+    noise.stop(start + 0.09);
+}
+
+function playChord(root, delay = 0){
+    [root, root * 1.25, root * 1.5].forEach((freq, index) => {
+        neonTone(freq, 0.07, "triangle", 0.022, delay + index * 0.006);
+    });
+}
+
+function playJumpSound(){
+    neonTone(330, 0.18, "sawtooth", 0.08, 0, 880);
+    neonTone(660, 0.11, "triangle", 0.06, 0.04, 990);
+}
+
+function playDuckSound(){
+    neonTone(220, 0.16, "square", 0.07, 0, 82.41);
+    neonTone(110, 0.08, "triangle", 0.08, 0.03, 73.42);
+}
+
+function playLaneSound(direction){
+    const start = direction < 0 ? 392 : 523.25;
+    const end = direction < 0 ? 293.66 : 659.25;
+    neonTone(start, 0.055, "triangle", 0.045, 0, end);
+}
+
+function playMusicStep(){
+    const step = musicStep % 16;
+    const bass = funkBass[step];
+
+    neonTone(bass, step % 4 === 3 ? 0.18 : 0.1, "sawtooth", 0.045, 0, bass * 0.98);
+
+    if(step === 0 || step === 8) playDrum("kick");
+    if(step === 4 || step === 12) playDrum("snare");
+    if(step % 2 === 1) playDrum("hat");
+
+    if(step === 3 || step === 7 || step === 11 || step === 15){
+        playChord(step < 8 ? 220 : 246.94, 0.015);
+    }
+
+    if(step === 6 || step === 14){
+        neonTone(funkLead[(musicStep / 2) % funkLead.length | 0], 0.08, "square", 0.025, 0.025);
+    }
+    musicStep++;
+}
+
+function startBackgroundMusic(){
+    getAudioContext();
+    if(musicTimer) return;
+    playMusicStep();
+    musicTimer = setInterval(playMusicStep, 145);
+}
+
+function stopBackgroundMusic(){
+    clearInterval(musicTimer);
+    musicTimer = null;
+}
 
 function init(){
 
@@ -248,18 +379,15 @@ window.addEventListener("keydown", (e)=>{
         return;
     }
 
-    if(music.paused){
-        music.currentTime = 0;
-        music.play();
-    }
+    startBackgroundMusic();
 
     if(gameOver) return;
 
     if(e.key === "ArrowLeft")
-        lane = Math.max(0, lane-1);
+        moveLane(-1);
 
     if(e.key === "ArrowRight")
-        lane = Math.min(2, lane+1);
+        moveLane(1);
 
     if(e.key === "ArrowUp")
         jump();
@@ -287,9 +415,12 @@ window.addEventListener("touchend", (e) => {
   let dx = e.changedTouches[0].clientX - touchStartX;
   let dy = e.changedTouches[0].clientY - touchStartY;
 
+  startBackgroundMusic();
+  if (gameOver) return;
+
   if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > 40) lane = Math.min(2, lane + 1);
-    else if (dx < -40) lane = Math.max(0, lane - 1);
+    if (dx > 40) moveLane(1);
+    else if (dx < -40) moveLane(-1);
   } else {
     if (dy < -40) jump();
     else if (dy > 40) slide();
@@ -372,10 +503,18 @@ return;
 }
 }
 
+function moveLane(direction){
+let nextLane = Math.max(0, Math.min(2, lane + direction));
+if(nextLane === lane) return;
+lane = nextLane;
+playLaneSound(direction);
+}
+
 // ================= JUMP =================
 function jump(){
 if(jumping) return;
 jumping = true;
+playJumpSound();
 
 let startY = player.position.y;
 let peak = 2;
@@ -408,6 +547,7 @@ clearInterval(down);
 function slide(){
 if(sliding) return;
 sliding = true;
+playDuckSound();
 
 player.scale.y = 0.4;
 
@@ -423,7 +563,7 @@ function endGame(){
 
     gameOver = true;
 
-    music.pause();
+    stopBackgroundMusic();
 
     explosion.currentTime = 0;
     explosion.play();
@@ -463,9 +603,7 @@ function restart(){
     jumping = false;
     sliding = false;
 
-    music.pause();
-    music.currentTime = 0;
-    music.play();
+    startBackgroundMusic();
 }
 
 // ================= LOOP =================

@@ -46,8 +46,90 @@ let score = 0, best = parseInt(localStorage.getItem('mole_best'), 10) || 0;
 let gameRunning = false;
 let timeLeft = 30;
 let gameStartTime = 0;
+let audioCtx;
 
 bestDisplay.textContent = 'Best: ' + best;
+
+function getAudioContext(){
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function envelope(gain, start, peak, duration){
+  gain.gain.cancelScheduledValues(start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+}
+
+function makeNoiseBuffer(ctx, duration){
+  const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  return buffer;
+}
+
+function playTone({ frequency, duration, type = 'sine', volume = 0.2, slideTo, delay = 0 }){
+  const ctx = getAudioContext();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + delay;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  if (slideTo) oscillator.frequency.exponentialRampToValueAtTime(slideTo, start + duration);
+
+  envelope(gain, start, volume, duration);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration);
+}
+
+function playNoiseHit(){
+  const ctx = getAudioContext();
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime;
+
+  source.buffer = makeNoiseBuffer(ctx, 0.08);
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(900, start);
+  filter.Q.setValueAtTime(0.9, start);
+  envelope(gain, start, 0.18, 0.08);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start(start);
+  source.stop(start + 0.08);
+}
+
+function playHitSound(){
+  playNoiseHit();
+  playTone({ frequency: 115, slideTo: 72, duration: 0.1, type: 'triangle', volume: 0.22 });
+  playTone({ frequency: 185, slideTo: 130, duration: 0.07, type: 'square', volume: 0.05, delay: 0.018 });
+}
+
+function playTimeUpSound(){
+  playTone({ frequency: 784, duration: 0.16, type: 'sine', volume: 0.13 });
+  playTone({ frequency: 988, duration: 0.16, type: 'sine', volume: 0.11, delay: 0.16 });
+  playTone({ frequency: 660, slideTo: 165, duration: 0.45, type: 'triangle', volume: 0.16, delay: 0.34 });
+}
+
+function unlockAudio(){
+  getAudioContext();
+}
+
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
 
 function init(){
   grid.innerHTML = '';
@@ -66,6 +148,7 @@ function init(){
       if (hole.classList.contains('active')) {
         score++;
         hole.classList.remove('active');
+        playHitSound();
         scoreDisplay.textContent = 'Score: ' + score;
       }
     };
@@ -92,6 +175,7 @@ function updateTimer(){
   
   if (timeLeft <= 0) {
     gameRunning = false;
+    playTimeUpSound();
     best = Math.max(best, score);
     localStorage.setItem('mole_best', best);
     bestDisplay.textContent = 'Best: ' + best;

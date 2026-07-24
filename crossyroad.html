@@ -215,7 +215,123 @@ let scrollRate = 0.0020;  // rows per frame auto-scroll speed
 
 // ===== AUDIO =====
 let ac = null;
-function initAc() { if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); }
+let musicTimer = null;
+let musicStep = 0;
+const funkBass = [98, 130.81, 98, 146.83, 164.81, 146.83, 130.81, 98, 123.47, 164.81, 123.47, 196, 220, 196, 164.81, 146.83];
+const funkLead = [392, 493.88, 587.33, 659.25, 739.99, 659.25, 587.33, 493.88];
+
+function initAc() {
+  if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)();
+  if (ac.state === 'suspended') ac.resume();
+}
+
+function shapeGain(gain, start, peak, attack, duration){
+  gain.gain.cancelScheduledValues(start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+}
+
+function neonTone(freq, duration, type, volume, delay = 0, endFreq){
+  initAc();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  const filter = ac.createBiquadFilter();
+  const start = ac.currentTime + delay;
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if(endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(1800, start);
+  filter.Q.setValueAtTime(2.2, start);
+
+  shapeGain(gain, start, volume, 0.008, duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ac.destination);
+  osc.start(start);
+  osc.stop(start + duration);
+}
+
+function playDrum(kind, delay = 0){
+  initAc();
+  const start = ac.currentTime + delay;
+  const gain = ac.createGain();
+
+  if(kind === 'kick'){
+    const osc = ac.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, start);
+    osc.frequency.exponentialRampToValueAtTime(42, start + 0.12);
+    shapeGain(gain, start, 0.16, 0.004, 0.14);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(start);
+    osc.stop(start + 0.14);
+    return;
+  }
+
+  const noise = ac.createBufferSource();
+  const filter = ac.createBiquadFilter();
+  const buffer = ac.createBuffer(1, ac.sampleRate * 0.08, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i = 0; i < data.length; i++){
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  noise.buffer = buffer;
+  filter.type = kind === 'snare' ? 'bandpass' : 'highpass';
+  filter.frequency.setValueAtTime(kind === 'snare' ? 1800 : 6500, start);
+  filter.Q.setValueAtTime(kind === 'snare' ? 0.8 : 1.4, start);
+  shapeGain(gain, start, kind === 'snare' ? 0.09 : 0.035, 0.003, kind === 'snare' ? 0.09 : 0.035);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ac.destination);
+  noise.start(start);
+  noise.stop(start + 0.09);
+}
+
+function playChord(root, delay = 0){
+  [root, root * 1.25, root * 1.5].forEach((freq, index) => {
+    neonTone(freq, 0.07, 'triangle', 0.022, delay + index * 0.006);
+  });
+}
+
+function playMusicStep(){
+  const step = musicStep % 16;
+  const bass = funkBass[step];
+
+  neonTone(bass, step % 4 === 3 ? 0.16 : 0.085, 'triangle', 0.042, 0, bass * 1.01);
+
+  if(step === 0 || step === 6 || step === 10) playDrum('kick');
+  if(step === 4 || step === 12) playDrum('snare');
+  if(step % 2 === 0) playDrum('hat');
+
+  if(step === 2 || step === 7 || step === 11 || step === 14){
+    playChord(step < 8 ? 196 : 220, 0.02);
+  }
+
+  if(step === 5 || step === 9 || step === 15){
+    neonTone(funkLead[(musicStep / 2) % funkLead.length | 0], 0.075, 'square', 0.022, 0.025);
+  }
+  musicStep++;
+}
+
+function startBackgroundMusic(){
+  initAc();
+  if(musicTimer) return;
+  playMusicStep();
+  musicTimer = setInterval(playMusicStep, 165);
+}
+
+function stopBackgroundMusic(){
+  clearInterval(musicTimer);
+  musicTimer = null;
+}
 
 function snd(type) {
   if (!ac) return;
@@ -245,7 +361,7 @@ function snd(type) {
       f.type='bandpass'; f.frequency.value=900; f.Q.value=0.5;
       s.buffer=buf; s.connect(f); f.connect(ac.destination); s.start(t);
     } else if (type === 'horn') {
-      [[220,0.28],[330,0.18]].forEach(([fr,vol])=>{
+      [[220,0.09],[330,0.055]].forEach(([fr,vol])=>{
         const o=ac.createOscillator(), g=ac.createGain();
         o.type='sawtooth'; o.frequency.value=fr;
         g.gain.setValueAtTime(vol,t); g.gain.setValueAtTime(vol,t+0.35); g.gain.exponentialRampToValueAtTime(0.001,t+0.55);
@@ -460,7 +576,11 @@ canvas.addEventListener('click',e=>{
   }
 });
 
-function startGame(){initGame();gs='playing';}
+function startGame(){
+  startBackgroundMusic();
+  initGame();
+  gs='playing';
+}
 
 // ===== TOUCH SUPPORT =====
 function touchToCanvas(touch) {
@@ -542,6 +662,11 @@ function loadData() {
 }
 function saveHs() { saveData(); }  // keep alias used in tryMove
 
+function rowInSight(row) {
+  const y = w2s(row);
+  return y > -CELL && y < H;
+}
+
 // ===== DEATH =====
 function die(type) {
   if(!pl.alive) return;
@@ -557,6 +682,7 @@ function die(type) {
     return;
   }
   pl.alive=false; pl.deathType=type;
+  stopBackgroundMusic();
   if(type==='car'||type==='train'){
     addShk(8,22);
     const sc=sk(); addPfx(sx,sy,sc.b,10,5,35); addPfx(sx,sy,sc.bl,8,3,28);
@@ -595,7 +721,7 @@ function updEnts() {
         lane.warnTimer--;
         if(lane.warnTimer<=0) {
           lane.warnOn=true;
-          snd('horn');
+          if(rowInSight(lane.row)) snd('horn');
           const fromLeft=lane.trainSpd>0;
           lane.ent.push({x:fromLeft?-CELL*6:W+CELL,w:CELL*5,h:CELL-6,spd:lane.trainSpd});
         }
