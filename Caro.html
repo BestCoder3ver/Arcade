@@ -57,7 +57,7 @@
         <div class="stat"><strong id="wins">0</strong><span>Wins</span></div>
         <div class="stat"><strong id="total">0</strong><span>Total</span></div>
       </div>
-      <button id="back" onclick="location.href='index.html'">Back</button>
+      <button id="back" onclick="location.href='index.html'">Back to Hub</button>
     </header>
 
     <div id="difficulty">
@@ -120,6 +120,54 @@ let current = HUMAN;
 let difficulty = 'easy';
 let pvp = false;
 let stats = JSON.parse(localStorage.getItem('caro_stats') || '{"wins":0,"total":0}');
+let audioCtx;
+
+function getAudioContext(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type = 'triangle', volume = 0.09, delay = 0, endFreq){
+  const ctx = getAudioContext();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + delay;
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if(endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration);
+}
+
+function playHumanPlaceSound(){
+  playTone(440, 0.08, 'triangle', 0.07, 0, 560);
+}
+
+function playAiPlaceSound(){
+  playTone(300, 0.09, 'sine', 0.065, 0, 220);
+}
+
+function playWinSound(){
+  [523.25, 659.25, 783.99, 1046.5].forEach((freq, index) => {
+    playTone(freq, 0.16, 'triangle', 0.085, index * 0.1);
+  });
+}
+
+function playLoseSound(){
+  playTone(392, 0.16, 'sawtooth', 0.07, 0, 261.63);
+  playTone(246.94, 0.26, 'triangle', 0.08, 0.16, 164.81);
+}
 
 function saveStats(){
   localStorage.setItem('caro_stats', JSON.stringify(stats));
@@ -169,6 +217,7 @@ function playMove(r, c){
   if(!pvp && current !== HUMAN) return;
 
   place(r, c, current);
+  playHumanPlaceSound();
   if(finishIfWon(r, c, current)) return;
 
   current = current === HUMAN ? AI : HUMAN;
@@ -190,6 +239,7 @@ function aiMove(){
   const move = chooseAiMove();
   if(!move) return;
   place(move.r, move.c, AI);
+  playAiPlaceSound();
   if(finishIfWon(move.r, move.c, AI)) return;
   current = HUMAN;
   updateLabels();
@@ -203,8 +253,13 @@ function finishIfWon(r, c, mark){
     stats.total++;
     if(mark === HUMAN && !pvp) stats.wins++;
     saveStats();
+    if(pvp || mark === HUMAN){
+      playWinSound();
+    } else {
+      playLoseSound();
+    }
     statusEl.textContent = pvp
-      ? (mark === HUMAN ? 'Player 1 wins!' : 'Player 2 wins!')
+      ? (mark === HUMAN ? 'O wins!' : 'X wins!')
       : (mark === HUMAN ? 'You win!' : 'AI wins!');
     return true;
   }
