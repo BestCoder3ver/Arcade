@@ -8,10 +8,11 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:#111827;color:#f8fafc;font-family:Arial,sans-serif}
     body{display:flex;align-items:stretch;justify-content:center;overflow:hidden}
-    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto 1fr auto;padding:8px 10px;gap:6px}
+    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto 1fr;padding:8px 10px;gap:6px}
     header{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
     h1{margin:0;font-size:26px;text-align:left}
     #stats{display:flex;gap:8px;justify-content:flex-end}.stat{min-width:58px;background:#1f2937;border:1px solid #374151;border-radius:7px;padding:5px 8px;text-align:center}.stat strong{display:block;font-size:17px}.stat span{display:block;font-size:10px;color:#cbd5e1}
+    #topControls{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
     #difficulty{display:flex;gap:6px;justify-content:center}
     button{border:0;border-radius:7px;background:#22c55e;color:#03150a;font-weight:bold;font-size:14px;min-height:34px;cursor:pointer}button.active{background:#facc15}button:hover{filter:brightness(1.08)}
     #difficulty button{min-height:30px;padding:5px 12px;font-size:13px}
@@ -20,18 +21,17 @@
     #boardWrap{display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
     #board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(98vw,calc(100vh - 176px),760px);aspect-ratio:1;border:4px solid #334155;box-shadow:0 12px 30px rgba(0,0,0,.35)}
     .sq{border:0;font-size:clamp(28px,7vw,58px);line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:"Arial Unicode MS","Segoe UI Symbol","Noto Sans Symbols 2",Arial,sans-serif}.piece-white{color:#fffdf2;text-shadow:0 2px 0 #111827,2px 0 0 #111827,-2px 0 0 #111827,0 -2px 0 #111827,0 0 6px rgba(0,0,0,.75)}.piece-black{color:#05070a;text-shadow:0 2px 0 #f8fafc,2px 0 0 #f8fafc,-2px 0 0 #f8fafc,0 -2px 0 #f8fafc,0 0 5px rgba(255,255,255,.85)}.light{background:#e2e8f0}.dark{background:#64748b}.sq.sel{outline:4px solid #facc15;outline-offset:-4px}.sq.move{box-shadow:inset 0 0 0 5px #22c55e}
-    #bottomControls{display:flex;justify-content:center;gap:8px;padding-bottom:4px}#bottomControls button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}#newGame{background:#38bdf8;color:#062135}#pvp{background:#a78bfa;color:#160f32}#back{justify-self:end;padding:6px 10px;min-height:30px;background:cyan;color:#000;font-size:12px}
-    @media(max-width:560px){#app{padding:7px;gap:5px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#difficulty button{padding:4px 9px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 158px))}#bottomControls button{min-height:28px;font-size:12px;padding:4px 12px}#back{font-size:11px;min-height:28px}}
+    #bottomControls{display:flex;justify-content:center;gap:8px}#bottomControls button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}#newGame{background:#38bdf8;color:#062135}#pvp{background:#a78bfa;color:#160f32}#back{justify-self:end;padding:6px 10px;min-height:30px;background:cyan;color:#000;font-size:12px}
+    @media(max-width:560px){#app{padding:7px;gap:5px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#topControls{gap:6px;flex-wrap:nowrap}#difficulty{gap:4px}#difficulty button{padding:4px 7px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 132px))}#bottomControls{gap:4px}#bottomControls button{min-height:28px;font-size:12px;padding:4px 8px;min-width:auto}#back{font-size:11px;min-height:28px}}
   </style>
 </head>
 <body>
 <main id="app">
   <header><h1>♟️ Chess</h1><div id="stats"><div class="stat"><strong id="wins">0</strong><span>Wins</span></div><div class="stat"><strong id="total">0</strong><span>Total</span></div></div><button id="back" onclick="location.href='index.html'">Back to Hub</button></header>
-  <div id="difficulty"><button class="active" data-difficulty="easy">Easy</button><button data-difficulty="medium">Medium</button><button data-difficulty="hard">Hard</button></div>
+  <div id="topControls"><div id="difficulty"><button class="active" data-difficulty="easy">Easy</button><button data-difficulty="medium">Medium</button><button data-difficulty="hard">Hard</button></div><div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div></div>
   <div id="status">Your turn - move white</div>
   <div id="players"><span>You: White</span><span>|</span><span id="opponentLabel">AI: Black</span><span>|</span><span id="modeLabel">Easy</span></div>
   <section id="boardWrap"><div id="board"></div></section>
-  <div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script>
