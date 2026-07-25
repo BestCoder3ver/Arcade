@@ -278,6 +278,11 @@ kbd {
 }
 
 @media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  :root {
+    --mobile-dpad-height: clamp(142px, 30vh, 210px);
+    --mobile-board-lift: clamp(12px, 4vh, 34px);
+  }
+
   #hud {
     align-items: flex-start;
     gap: 8px;
@@ -296,12 +301,21 @@ kbd {
 
   #game-container {
     align-items: flex-start;
-    padding: 0 0 clamp(190px, 42vh, 300px);
+    padding: 0 0 var(--mobile-dpad-height);
     overflow: hidden;
   }
 
   #game-container canvas {
-    max-height: calc(100vh - 56px - clamp(190px, 42vh, 300px));
+    max-height: calc(100vh - 56px - var(--mobile-dpad-height) + var(--mobile-board-lift));
+    transform: translateY(calc(-1 * var(--mobile-board-lift)));
+  }
+
+  #mobile-controls {
+    height: var(--mobile-dpad-height);
+  }
+
+  #game-over-modal {
+    padding-bottom: var(--mobile-dpad-height);
   }
 
   .overlay-box {
