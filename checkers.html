@@ -8,7 +8,7 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:#15161f;color:#f5f7fb;font-family:Arial,sans-serif}
     body{display:flex;align-items:stretch;justify-content:center;overflow:hidden}
-    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto 1fr;padding:8px 10px;gap:6px}
+    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto auto 1fr;padding:8px 10px;gap:6px}
     header{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
     h1{margin:0;font-size:26px;text-align:left}
     #stats{display:flex;gap:8px;justify-content:flex-end}
@@ -35,9 +35,10 @@
 <body>
 <main id="app">
   <header><h1>🔴 Checkers</h1><div id="stats"><div class="stat"><strong id="wins">0</strong><span>Wins</span></div><div class="stat"><strong id="total">0</strong><span>Total</span></div></div><button id="back" onclick="location.href='index.html'">Back to Hub</button></header>
-  <div id="topControls"><div id="difficulty"><button class="active" data-difficulty="easy">Easy</button><button data-difficulty="medium">Medium</button><button data-difficulty="hard">Hard</button></div><div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div></div>
+  <div id="topControls"><div id="difficulty"><button class="active" data-difficulty="easy">Easy</button><button data-difficulty="medium">Medium</button><button data-difficulty="hard">Hard</button></div></div>
   <div id="status">Your turn - move red</div>
   <div id="players"><span>You: 🔴</span><span>|</span><span id="opponentLabel">AI: ⚫</span><span>|</span><span id="modeLabel">Easy</span></div>
+  <div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div>
   <section id="boardWrap"><div id="board"></div></section>
 </main>
 <script>
