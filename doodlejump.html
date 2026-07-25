@@ -278,6 +278,8 @@
     let state = 'ready';
     let lastTime = performance.now();
     let audioCtx = null;
+    let musicTimer = null;
+    let musicStep = 0;
     let bestAnnounced = false;
 
     bestEl.textContent = 'Best: ' + best;
@@ -352,7 +354,29 @@
       noise(0.24, 0.16, 900);
     }
 
+    function startMusic() {
+      const ac = ensureAudio();
+      if (!ac || musicTimer) return;
+
+      const melody = [392, 494, 587, 659, 587, 494, 440, 523];
+      musicTimer = setInterval(() => {
+        if (!audioCtx || audioCtx.state !== 'running' || state !== 'playing') return;
+        const note = melody[musicStep % melody.length];
+        tone(note, 0.16, 'triangle', 0.025, 0);
+        if (musicStep % 2 === 0) tone(note / 2, 0.22, 'sine', 0.018, 0);
+        musicStep++;
+      }, 240);
+    }
+
+    function stopMusic() {
+      if (musicTimer) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+      }
+    }
+
     function reset() {
+      startMusic();
       player = {
         x: W / 2,
         y: H - 125,
@@ -539,6 +563,7 @@
     function endGame() {
       if (state !== 'playing') return;
       state = 'gameover';
+      stopMusic();
       best = Math.max(best, score);
       localStorage.setItem(bestKey, best);
       bestEl.textContent = 'Best: ' + best;
