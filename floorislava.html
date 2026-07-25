@@ -43,24 +43,24 @@ function startMusic(){
 }
 function jumpSound(){tone(330,.12,'triangle',.055,0,520)}
 function gemSound(){tone(880,.08,'sine',.05);tone(1320,.1,'triangle',.04,.06)}
-function dashSound(){tone(180,.07,'square',.045,0,360)}
+function dashSound(){tone(95,.06,'sawtooth',.055,0,760);tone(1240,.09,'square',.03,.025,420)}
 function deathSound(){tone(180,.18,'sawtooth',.06,0,90);tone(70,.36,'sine',.07,.12,35)}
 function reset(withAudio=true){if(withAudio)startMusic();p={x:W/2-14,y:START_PLAYER_Y,w:28,h:34,vx:0,vy:0,on:false,dash:true};plats=[{x:W/2-115,y:START_PLATFORM_Y,w:230,h:18}];gems=[];lava=H+40;camera=0;climbed=0;gemCount=0;state='play';lastDir=1;keys.down=false;msg.className='hidden';for(let y=START_PLATFORM_Y-82;y>-2600;y-=70)spawn(y);hud()}
 function spawn(y){const w=95+Math.random()*105,x=24+Math.random()*(W-w-48);plats.push({x,y,w,h:16,move:Math.random()<.28,v:(Math.random()<.5?-1:1)*(1+Math.random()*1.1)});if(Math.random()<.75)gems.push({x:x+w/2-10,y:y-28,w:20,h:20,t:false})}
 function saveShop(){localStorage.floorislava_wallet=wallet;localStorage.floorislava_skins=JSON.stringify(owned);localStorage.floorislava_skin=skinId}
 function skin(){return SKINS.find(s=>s.id===skinId)||SKINS[0]}
-function hud(){heightEl.textContent='Height '+Math.floor(climbed);bestEl.textContent='Best '+best;gemsEl.textContent='Gems '+gemCount+' / '+wallet}
+function hud(){heightEl.textContent='Height '+Math.floor(climbed);bestEl.textContent='Best '+best;gemsEl.textContent='Gems '+wallet}
 function renderShop(){walletText.textContent='Gems '+wallet;skinsEl.innerHTML='';SKINS.forEach(s=>{const bought=owned.includes(s.id),equipped=skinId===s.id,card=document.createElement('div');card.className='skin';card.innerHTML=`<div class="swatch" style="background:${s.color}"></div><div class="skinName">${s.name}</div><div class="skinCost">${s.cost} gems</div><button>${equipped?'Equipped':bought?'Equip':'Buy'}</button>`;const btn=card.querySelector('button');btn.disabled=equipped||(!bought&&wallet<s.cost);btn.onclick=()=>{if(bought){skinId=s.id}else if(wallet>=s.cost){wallet-=s.cost;owned.push(s.id);skinId=s.id}saveShop();hud();renderShop()};skinsEl.appendChild(card)})}
-function end(){if(state==='over')return;state='over';deathSound();wallet+=gemCount;saveShop();best=Math.max(best,Math.floor(climbed));localStorage.floorislava_best=best;msg.className='over';msgText.textContent='Lava got you';hud();renderShop()}
+function end(){if(state==='over')return;state='over';deathSound();saveShop();best=Math.max(best,Math.floor(climbed));localStorage.floorislava_best=best;msg.className='over';msgText.textContent='Lava got you';hud();renderShop()}
 function update(){
  if(state!=='play')return;
  if(keys.left)lastDir=-1;if(keys.right)lastDir=1;
- p.vx+=(keys.left?-.55:0)+(keys.right?.55:0);if(!keys.left&&!keys.right)p.vx*=.84;p.vx=Math.max(-5,Math.min(5,p.vx));if(keys.jump&&p.on){p.vy=-13.5;p.on=false;p.dash=true;jumpSound()}if(keys.down&&!p.on&&p.dash){p.vx=lastDir*18;p.vy=Math.min(p.vy,1.2);p.dash=false;dashSound()}
+ p.vx+=(keys.left?-.55:0)+(keys.right?.55:0);if(!keys.left&&!keys.right)p.vx*=.84;p.vx=Math.max(-5,Math.min(5,p.vx));if(keys.jump&&p.on){p.vy=-13.5;p.on=false;p.dash=true;jumpSound()}if(keys.down&&!p.on&&p.dash){p.vx=lastDir*90;p.vy=Math.min(p.vy,.5);p.dash=false;dashSound()}
  p.vy+=.58;p.x+=p.vx;p.y+=p.vy;p.on=false;if(p.x<0){p.x=0;p.vx=0}if(p.x+p.w>W){p.x=W-p.w;p.vx=0}
  plats.forEach(o=>{if(o.move){o.x+=o.v;if(o.x<20||o.x+o.w>W-20)o.v*=-1}if(p.vy>=0&&p.x+p.w>o.x&&p.x<o.x+o.w&&p.y+p.h>=o.y&&p.y+p.h<=o.y+18){p.y=o.y-p.h;p.vy=0;p.on=true;p.dash=true;if(o.move)p.x+=o.v}});
  if(p.y-camera<170)camera=p.y-170;while(plats[plats.length-1].y>camera-700)spawn(plats[plats.length-1].y-70-Math.random()*25);
  lava-=(.42+climbed/2200)*3;if(lava-camera>H+80)lava=camera+H+80;climbed=Math.max(climbed,Math.max(0,Math.floor((START_PLAYER_Y-p.y)/10)));
- gems.forEach(g=>{if(!g.t&&hit(p,g)){g.t=true;gemCount++;climbed+=5;gemSound()}});plats=plats.filter(o=>o.y<camera+H+100);gems=gems.filter(o=>o.y<camera+H+100&&!o.t);
+ gems.forEach(g=>{if(!g.t&&hit(p,g)){g.t=true;gemCount++;wallet++;saveShop();climbed+=5;gemSound()}});plats=plats.filter(o=>o.y<camera+H+100);gems=gems.filter(o=>o.y<camera+H+100&&!o.t);
  if(p.y+p.h>lava)end();hud()
 }
 function draw(){
@@ -68,7 +68,7 @@ function draw(){
  plats.forEach(o=>{const y=o.y-camera;d.fillStyle=o.move?'#9f7aea':'#5ee078';d.fillRect(o.x,y,o.w,o.h);d.fillStyle='rgba(255,255,255,.45)';d.fillRect(o.x,y,o.w,4)});
  gems.forEach(g=>{const y=g.y-camera;d.fillStyle='#38d7ff';d.beginPath();d.moveTo(g.x+10,y);d.lineTo(g.x+20,y+10);d.lineTo(g.x+10,y+20);d.lineTo(g.x,y+10);d.closePath();d.fill()});
  const ly=lava-camera;d.fillStyle='#ff481f';d.fillRect(0,ly,W,H-ly);d.fillStyle='#ffb11f';for(let i=0;i<W;i+=38)d.beginPath(),d.arc(i+(Date.now()/40)%38,ly+8,18,0,Math.PI),d.fill();
- d.fillStyle=skin().color;d.fillRect(p.x,p.y-camera,p.w,p.h);d.fillStyle='#08131a';d.fillRect(p.x+16,p.y-camera+9,5,5);
+ const py=p.y-camera,pc=skin().color;d.fillStyle='rgba(0,0,0,.28)';d.fillRect(p.x+3,py+31,p.w-2,5);d.fillStyle=pc;d.fillRect(p.x+5,py+9,18,20);d.fillRect(p.x+8,py,14,12);d.fillStyle='rgba(255,255,255,.45)';d.fillRect(p.x+8,py+3,9,3);d.fillStyle='#101014';d.fillRect(p.x+17,py+5,4,4);d.fillStyle='#ffd7a6';d.fillRect(p.x+13,py+9,9,8);d.fillStyle='#20120c';d.fillRect(p.x+4,py+29,8,5);d.fillRect(p.x+18,py+29,8,5);d.fillStyle='#fff';d.fillRect(p.x+19,py+6,2,2);
  if(state==='ready'){msg.className='';msgText.textContent='Climb before the lava rises!'}
  requestAnimationFrame(draw)
 }
