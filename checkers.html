@@ -8,8 +8,10 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:#15161f;color:#f5f7fb;font-family:Arial,sans-serif}
     body{display:flex;align-items:stretch;justify-content:center;overflow:hidden}
-    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto auto 1fr;padding:8px 10px;gap:6px}
+    #app{width:min(100vw,820px);height:100vh;display:grid;grid-template-rows:auto auto auto auto 1fr;padding:8px 10px;gap:6px}
     header{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+    #titleArea,#hubArea{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+    #hubArea{align-items:flex-end}
     h1{margin:0;font-size:26px;text-align:left}
     #stats{display:flex;gap:8px;justify-content:flex-end}
     .stat{min-width:58px;background:#222638;border:1px solid #38405f;border-radius:7px;padding:5px 8px;text-align:center}
@@ -25,20 +27,18 @@
     #board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(98vw,calc(100vh - 176px),760px);aspect-ratio:1;border:4px solid #684019;box-shadow:0 12px 30px rgba(0,0,0,.35)}
     .sq{border:0;font-size:clamp(24px,7vw,56px);line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
     .light{background:#f0d9b5}.dark{background:#94613a}.sq.sel{outline:4px solid #facc15;outline-offset:-4px}.sq.move{box-shadow:inset 0 0 0 5px #22c55e}
-    #bottomControls{display:flex;justify-content:center;gap:8px}
-    #bottomControls button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}
+    #titleArea button,#hubArea button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}
     #newGame{background:#38bdf8;color:#062135}#pvp{background:#a78bfa;color:#160f32}
     #back{justify-self:end;padding:6px 10px;min-height:30px;background:cyan;color:#000;font-size:12px}
-    @media(max-width:560px){#app{padding:7px;gap:5px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#topControls{gap:6px;flex-wrap:nowrap}#difficulty{gap:4px}#difficulty button{padding:4px 7px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 150px))}#bottomControls{gap:4px}#bottomControls button{min-height:28px;font-size:12px;padding:4px 8px;min-width:auto}#back{font-size:11px;min-height:28px}}
+    @media(max-width:560px){#app{padding:7px;gap:5px}header{gap:6px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#topControls{gap:6px;flex-wrap:nowrap}#difficulty{gap:4px}#difficulty button{padding:4px 7px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 150px))}#titleArea button,#hubArea button{min-height:28px;font-size:12px;padding:4px 8px;min-width:auto}#back{font-size:11px;min-height:28px}}
   </style>
 </head>
 <body>
 <main id="app">
-  <header><h1>🔴 Checkers</h1><div id="stats"><div class="stat"><strong id="wins">0</strong><span>Wins</span></div><div class="stat"><strong id="total">0</strong><span>Total</span></div></div><button id="back" onclick="location.href='index.html'">Back to Hub</button></header>
+  <header><div id="titleArea"><h1>🔴 Checkers</h1><button id="newGame">New Game</button></div><div id="stats"><div class="stat"><strong id="wins">0</strong><span>Wins</span></div><div class="stat"><strong id="total">0</strong><span>Total</span></div></div><div id="hubArea"><button id="back" onclick="location.href='index.html'">Back to Hub</button><button id="pvp">PvP</button></div></header>
   <div id="topControls"><div id="difficulty"><button class="active" data-difficulty="easy">Easy</button><button data-difficulty="medium">Medium</button><button data-difficulty="hard">Hard</button></div></div>
   <div id="status">Your turn - move red</div>
   <div id="players"><span>You: 🔴</span><span>|</span><span id="opponentLabel">AI: ⚫</span><span>|</span><span id="modeLabel">Easy</span></div>
-  <div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div>
   <section id="boardWrap"><div id="board"></div></section>
 </main>
 <script>
