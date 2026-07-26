@@ -746,30 +746,28 @@
 
     function bindButton(id, dir) {
       const el = document.getElementById(id);
-      el.addEventListener('touchstart', e => {
+      const press = e => {
         e.preventDefault();
+        if(e.pointerId !== undefined && el.setPointerCapture) el.setPointerCapture(e.pointerId);
         dpadAction(dir, true);
-      }, { passive: false });
-      el.addEventListener('touchend', e => {
+      };
+      const release = e => {
         e.preventDefault();
         dpadAction(dir, false);
-      }, { passive: false });
-      el.addEventListener('touchcancel', e => {
-        e.preventDefault();
-        dpadAction(dir, false);
-      }, { passive: false });
-      el.addEventListener('mousedown', e => {
-        e.preventDefault();
-        dpadAction(dir, true);
-      });
-      el.addEventListener('mouseup', e => {
-        e.preventDefault();
-        dpadAction(dir, false);
-      });
-      el.addEventListener('mouseleave', e => {
-        e.preventDefault();
-        dpadAction(dir, false);
-      });
+      };
+      if(window.PointerEvent){
+        el.addEventListener('pointerdown', press);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('lostpointercapture', () => dpadAction(dir, false));
+      }else{
+        el.addEventListener('touchstart', press, { passive: false });
+        el.addEventListener('touchend', release, { passive: false });
+        el.addEventListener('touchcancel', release, { passive: false });
+        el.addEventListener('mousedown', press);
+        el.addEventListener('mouseup', release);
+        el.addEventListener('mouseleave', release);
+      }
     }
 
     bindButton('dbl', 'lt');

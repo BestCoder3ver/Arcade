@@ -24,40 +24,67 @@ body{display:flex;justify-content:center}#app{width:100%;height:100vh;display:gr
 <script>
 (function(){const u=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=u){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';return;}setInterval(()=>{const t=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=t){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';}},1000);})();
 const c=document.getElementById('game'),ctx=c.getContext('2d'),distEl=document.getElementById('dist'),bestEl=document.getElementById('best'),gemsEl=document.getElementById('gems'),comboEl=document.getElementById('combo'),msg=document.getElementById('msg'),msgText=document.getElementById('msgText'),playAgain=document.getElementById('playAgain'),shopBtn=document.getElementById('shopBtn'),shop=document.getElementById('shop'),skinsEl=document.getElementById('skins'),walletText=document.getElementById('walletText'),closeShop=document.getElementById('closeShop'),flyBtn=document.getElementById('fly');
-const W=c.width,H=c.height,SKINS=[{id:'blue',name:'Cave Rookie',color:'#36f2ff',cost:0},{id:'fire',name:'Flame Pack',color:'#ff5a2e',cost:25},{id:'gold',name:'Gold Rush',color:'#ffd84a',cost:45},{id:'toxic',name:'Toxic Trail',color:'#5cff8d',cost:70},{id:'void',name:'Void Pilot',color:'#b18cff',cost:110},{id:'ghost',name:'Ghost Jet',color:'#f4f8ff',cost:160}];
+const W=c.width,H=c.height,SKINS=[{id:'blue',name:'Cave Rookie',color:'#36f2ff',cost:0},{id:'fire',name:'Flame Pack',color:'#ff5a2e',cost:2},{id:'gold',name:'Gold Rush',color:'#ffd84a',cost:3},{id:'toxic',name:'Toxic Trail',color:'#5cff8d',cost:4},{id:'void',name:'Void Pilot',color:'#b18cff',cost:10},{id:'ghost',name:'Ghost Jet',color:'#f4f8ff',cost:12}];
 let best=+localStorage.jetpackcave_best||0,wallet=+localStorage.jetpackcave_wallet||0,owned=JSON.parse(localStorage.jetpackcave_skins||'["blue"]'),skinId=localStorage.jetpackcave_skin||'blue';
-let p,rocks,gems,particles,dist,speed,combo,comboTimer,state='ready',holding=false,last=0,seed=0,audioCtx,musicTimer,musicStep=0,thrustTimer=null;
+let p,rocks,gems,particles,dist,speed,combo,comboTimer,state='ready',holding=false,last=0,seed=0,audioCtx,thrustNodes=null,musicTimer=null,musicStep=0,nextObstacleM,nextGemM;
 function save(){localStorage.jetpackcave_wallet=wallet;localStorage.jetpackcave_skins=JSON.stringify(owned);localStorage.jetpackcave_skin=skinId}
 function skin(){return SKINS.find(s=>s.id===skinId)||SKINS[0]}
 function audio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
 function tone(f,dur,type='sine',vol=.05,delay=0,end){const a=audio(),o=a.createOscillator(),g=a.createGain(),t=a.currentTime+delay;o.type=type;o.frequency.setValueAtTime(f,t);if(end)o.frequency.exponentialRampToValueAtTime(end,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur)}
-function startMusic(){audio();if(musicTimer)return;const bass=[73.42,73.42,87.31,65.41,98,87.31,73.42,55],lead=[293.66,329.63,392,369.99,329.63,293.66,246.94,220];musicTimer=setInterval(()=>{if(state==='play'||state==='ready'){const i=musicStep++%bass.length;tone(bass[i],.24,'sawtooth',.026,0,bass[i]/2);if(i%2)tone(lead[i],.1,'square',.016,.04)}},210)}
-function thrustSound(on){if(on&&audioCtx&&!thrustTimer)thrustTimer=setInterval(()=>tone(95+Math.random()*25,.055,'sawtooth',.018,0,180),70);if(!on&&thrustTimer){clearInterval(thrustTimer);thrustTimer=null}}
-function gemSound(){tone(900,.07,'sine',.05);tone(1350,.1,'triangle',.04,.05)}
-function crashSound(){tone(130,.2,'sawtooth',.07,0,45);tone(70,.35,'square',.05,.1,30)}
-function reset(withAudio=true){if(withAudio)startMusic();p={x:165,y:H/2,w:38,h:26,vy:0,tilt:0,trail:[]};rocks=[];gems=[];particles=[];dist=0;speed=4.2;combo=1;comboTimer=0;seed=0;state='play';msg.classList.add('hidden');spawnBatch();hud()}
+function startMusic(){audio();if(musicTimer)return;const melody=[220,196,246.94,246.94,174.61,196,246.94,246.94,220,196,261.63,261.63,174.61,196,293.66,293.66],bass=[55,55,49,49,43.65,43.65,49,49];musicTimer=setInterval(()=>{if(state==='play'||state==='ready'){const i=musicStep++;tone(melody[i%melody.length],.105,'triangle',.044,0);if(i%2===0)tone(bass[(i/2)%bass.length],.17,'sine',.046,0,bass[(i/2)%bass.length]/2);if(i%8===7)tone(329.63,.08,'square',.022,.035,164.81)}},145)}
+function thrustSound(on){
+ const a=audio();
+ if(on&&thrustNodes)return;
+ if(on){
+  const rumble=a.createOscillator(),whine=a.createOscillator(),filter=a.createBiquadFilter(),gain=a.createGain();
+  rumble.type='triangle';rumble.frequency.setValueAtTime(118,a.currentTime);
+  whine.type='sine';whine.frequency.setValueAtTime(238,a.currentTime);
+  filter.type='bandpass';filter.frequency.setValueAtTime(760,a.currentTime);filter.Q.setValueAtTime(1.6,a.currentTime);
+  gain.gain.setValueAtTime(.0001,a.currentTime);gain.gain.exponentialRampToValueAtTime(.044,a.currentTime+.1);
+  rumble.connect(filter);whine.connect(filter);filter.connect(gain);gain.connect(a.destination);
+  rumble.start();whine.start();
+  thrustNodes={rumble,whine,filter,gain,sweep:setInterval(()=>{const t=a.currentTime;filter.frequency.cancelScheduledValues(t);filter.frequency.linearRampToValueAtTime(690+Math.random()*140,t+.24);rumble.frequency.linearRampToValueAtTime(108+Math.random()*20,t+.24);whine.frequency.linearRampToValueAtTime(225+Math.random()*26,t+.24)},240)};
+  return;
+ }
+ if(thrustNodes){
+  const t=a.currentTime;
+  clearInterval(thrustNodes.sweep);
+  thrustNodes.gain.gain.cancelScheduledValues(t);
+  thrustNodes.gain.gain.setValueAtTime(thrustNodes.gain.gain.value||.052,t);
+  thrustNodes.gain.gain.exponentialRampToValueAtTime(.0001,t+.12);
+  thrustNodes.rumble.stop(t+.14);thrustNodes.whine.stop(t+.14);
+  thrustNodes=null;
+ }
+}
+function gemSound(){tone(980,.06,'sine',.055);tone(1470,.08,'triangle',.045,.045);tone(1960,.06,'sine',.03,.1)}
+function crashSound(){tone(146.83,.14,'triangle',.065,0,110);tone(110,.18,'triangle',.055,.1,82.41);tone(82.41,.28,'sine',.06,.24,55);tone(987.77,.05,'sine',.035,.05,493.88);tone(740,.06,'sine',.03,.16,370)}
+function reset(withAudio=true){if(withAudio)startMusic();p={x:165,y:H/2,w:38,h:26,vy:0,tilt:0,trail:[]};rocks=[];gems=[];particles=[];dist=0;speed=4.2;combo=1;comboTimer=0;seed=0;nextObstacleM=14;nextGemM=4+Math.random()*116;state='play';msg.classList.add('hidden');spawnAhead();hud()}
 function caveY(x){return H/2+Math.sin((x+seed)*.006)*82+Math.sin((x+seed)*.017)*32}
 function gapAt(x){return Math.max(142,230-Math.min(78,dist/35))}
 function topAt(x){return caveY(x)-gapAt(x)/2}
 function bottomAt(x){return caveY(x)+gapAt(x)/2}
-function spawnBatch(){for(let i=0;i<8;i++)spawnRock(W+i*160)}
-function spawnRock(x){if(Math.random()<.68){const cy=caveY(x+seed),gap=gapAt(x),top=cy-gap/2,bottom=cy+gap/2;rocks.push({x:x+Math.random()*70,y:Math.random()<.5?top-24:bottom+8,w:42+Math.random()*34,h:42+Math.random()*30,top:Math.random()<.5})}if(Math.random()<.82){gems.push({x:x+75,y:caveY(x+seed)-20+Math.random()*40,w:20,h:20,t:false})}}
+function metersToX(m){return W+(m-dist)*46}
+function spawnAhead(){const future=dist+W/46+8;while(nextObstacleM<future){spawnSaw(metersToX(nextObstacleM));nextObstacleM+=10+Math.random()*14}while(nextGemM<future){spawnGem(metersToX(nextGemM));nextGemM+=4+Math.random()*116}}
+function spawnSaw(x){const cy=caveY(x+seed),gap=gapAt(x),limit=gap/2-34;rocks.push({type:'saw',x:x+Math.random()*28,y:cy-limit+Math.random()*limit*2,w:42+Math.random()*18,h:42+Math.random()*18,spin:Math.random()*6})}
+function spawnGem(x){const gx=x+Math.random()*24,cy=caveY(gx+seed),safeTop=topAt(gx)+34,safeBottom=bottomAt(gx)-54;if(safeBottom<=safeTop)return;gems.push({x:gx,y:safeTop+Math.random()*(safeBottom-safeTop),w:20,h:20,t:false})}
 function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function hud(){distEl.textContent='Distance '+Math.floor(dist);bestEl.textContent='Best '+best;gemsEl.textContent='Gems '+wallet;comboEl.textContent='Combo x'+combo}
 function collectGem(g){g.t=true;wallet+=combo;combo=Math.min(9,combo+1);comboTimer=150;save();gemSound();for(let i=0;i<8;i++)particles.push({x:g.x+10,y:g.y+10,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:24,color:'#ffd84a'})}
 function end(){if(state==='over')return;state='over';holding=false;thrustSound(false);crashSound();best=Math.max(best,Math.floor(dist));localStorage.jetpackcave_best=best;msgText.textContent='Crashed at '+Math.floor(dist)+'m';msg.className='over';hud();renderShop()}
 function update(){if(state!=='play')return;speed=Math.min(10.8,speed+.0018);dist+=speed*.09;seed+=speed;p.vy+=holding?-.55:.38;p.vy=Math.max(-7.2,Math.min(7.6,p.vy));p.y+=p.vy;p.tilt+=(p.vy*.08-p.tilt)*.16;p.trail.unshift({x:p.x-8,y:p.y+p.h/2,life:18});p.trail=p.trail.filter(t=>--t.life>0).slice(0,22);if(comboTimer>0)comboTimer--;else combo=1;
  rocks.forEach(r=>r.x-=speed);gems.forEach(g=>g.x-=speed);particles.forEach(q=>{q.x+=q.vx-speed;q.y+=q.vy;q.life--});particles=particles.filter(q=>q.life>0);
- if(rocks.length<9)spawnRock(W+Math.random()*160);rocks=rocks.filter(r=>r.x+r.w>-80);gems=gems.filter(g=>g.x+g.w>-80&&!g.t);
+ spawnAhead();rocks=rocks.filter(r=>r.x+r.w>-80);gems=gems.filter(g=>g.x+g.w>-80&&!g.t);
  const top=topAt(p.x),bottom=bottomAt(p.x);if(p.y<top||p.y+p.h>bottom||rocks.some(r=>hit(p,r)))end();gems.forEach(g=>{if(!g.t&&hit(p,g))collectGem(g)});hud()}
 function drawCave(){ctx.fillStyle='#081220';ctx.fillRect(0,0,W,H);ctx.fillStyle='#16243b';for(let i=0;i<24;i++)ctx.fillRect((i*91-seed*.25)%W,0,3,H);ctx.beginPath();ctx.moveTo(0,0);for(let x=0;x<=W;x+=18)ctx.lineTo(x,topAt(x));ctx.lineTo(W,0);ctx.closePath();ctx.fillStyle='#2a1b2f';ctx.fill();ctx.beginPath();ctx.moveTo(0,H);for(let x=0;x<=W;x+=18)ctx.lineTo(x,bottomAt(x));ctx.lineTo(W,H);ctx.closePath();ctx.fillStyle='#2b1d18';ctx.fill();ctx.strokeStyle='#ff8f31';ctx.lineWidth=4;ctx.beginPath();for(let x=0;x<=W;x+=18){const y=bottomAt(x);x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();ctx.strokeStyle='#36f2ff';ctx.beginPath();for(let x=0;x<=W;x+=18){const y=topAt(x);x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke()}
 function drawPlayer(){const s=skin();p.trail.forEach(t=>{ctx.globalAlpha=t.life/36;ctx.fillStyle=s.color;ctx.fillRect(t.x,t.y-3,14,6)});ctx.globalAlpha=1;ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);ctx.rotate(p.tilt);ctx.fillStyle=s.color;ctx.fillRect(-17,-10,28,20);ctx.fillStyle='#d9f8ff';ctx.fillRect(6,-7,12,10);ctx.fillStyle='#10141b';ctx.fillRect(12,-3,4,4);ctx.fillStyle='#333';ctx.fillRect(-24,-7,10,14);if(holding){ctx.fillStyle='#ff8f31';ctx.fillRect(-37,-5,16,10);ctx.fillStyle='#ffd84a';ctx.fillRect(-49,-3,14,6)}ctx.restore()}
-function draw(){drawCave();rocks.forEach(r=>{ctx.fillStyle='#54384b';ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle='#7a5368';ctx.fillRect(r.x+6,r.y+5,r.w-12,8)});gems.forEach(g=>{ctx.fillStyle='#ffd84a';ctx.beginPath();ctx.moveTo(g.x+10,g.y);ctx.lineTo(g.x+20,g.y+10);ctx.lineTo(g.x+10,g.y+20);ctx.lineTo(g.x,g.y+10);ctx.closePath();ctx.fill()});particles.forEach(q=>{ctx.globalAlpha=Math.max(0,q.life/24);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,4,4)});ctx.globalAlpha=1;drawPlayer();if(state==='ready'){msgText.textContent='Hold to fly. Release to fall.';msg.classList.remove('hidden')}requestAnimationFrame(draw)}
+function drawRock(r){const cx=r.x+r.w/2,cy=r.y+r.h/2,rad=Math.min(r.w,r.h)/2;ctx.save();ctx.translate(cx,cy);ctx.rotate(r.spin+seed*.04);ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,rr=i%2?rad*.72:rad;const x=Math.cos(a)*rr,y=Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.fillStyle='#9aa0a6';ctx.fill();ctx.strokeStyle='#e5e7eb';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(0,0,rad*.26,0,Math.PI*2);ctx.fillStyle='#4b5563';ctx.fill();ctx.restore()}
+function draw(){drawCave();rocks.forEach(drawRock);gems.forEach(g=>{ctx.fillStyle='#ffd84a';ctx.beginPath();ctx.moveTo(g.x+10,g.y);ctx.lineTo(g.x+20,g.y+10);ctx.lineTo(g.x+10,g.y+20);ctx.lineTo(g.x,g.y+10);ctx.closePath();ctx.fill()});particles.forEach(q=>{ctx.globalAlpha=Math.max(0,q.life/24);ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,4,4)});ctx.globalAlpha=1;drawPlayer();if(state==='ready'){msgText.textContent='Hold to fly. Release to fall.';msg.classList.remove('hidden')}requestAnimationFrame(draw)}
 function renderShop(){walletText.textContent='Gems '+wallet;skinsEl.innerHTML='';SKINS.forEach(s=>{const got=owned.includes(s.id),eq=skinId===s.id,card=document.createElement('div');card.className='skin';card.innerHTML=`<div class="swatch" style="background:${s.color}"></div><div class="skinName">${s.name}</div><div class="skinCost">${s.cost} gems</div><button>${eq?'Equipped':got?'Equip':'Buy'}</button>`;const b=card.querySelector('button');b.disabled=eq||(!got&&wallet<s.cost);b.onclick=()=>{if(got)skinId=s.id;else if(wallet>=s.cost){wallet-=s.cost;owned.push(s.id);skinId=s.id}save();hud();renderShop()};skinsEl.appendChild(card)})}
 function setFly(v){startMusic();if(state==='ready')reset();if(state==='over')return;holding=v;flyBtn.classList.toggle('down',v);thrustSound(v)}
 setInterval(update,1000/60);requestAnimationFrame(draw);reset(false);state='ready';
 document.addEventListener('keydown',e=>{if(e.key==='Escape')location.href='index.html';if(e.key==='r'||e.key==='R')reset();if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();setFly(true)}});document.addEventListener('keyup',e=>{if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W')setFly(false)});
-flyBtn.onpointerdown=e=>{e.preventDefault();setFly(true)};flyBtn.onpointerup=flyBtn.onpointercancel=flyBtn.onpointerleave=e=>{setFly(false)};c.onpointerdown=e=>{e.preventDefault();setFly(true)};c.onpointerup=c.onpointercancel=c.onpointerleave=e=>{setFly(false)};
+function bindHold(el){el.onpointerdown=e=>{e.preventDefault();if(el.setPointerCapture)el.setPointerCapture(e.pointerId);setFly(true)};el.onpointerup=el.onpointercancel=el.onlostpointercapture=e=>{setFly(false)};el.onpointerleave=e=>{if(e.pointerType==='mouse')setFly(false)};el.ontouchstart=e=>e.preventDefault()}
+bindHold(flyBtn);bindHold(c);document.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.target.closest('#shop'))return;e.preventDefault();setFly(true)},{passive:false});document.addEventListener('pointerup',()=>setFly(false));document.addEventListener('pointercancel',()=>setFly(false));
 playAgain.onclick=()=>reset();shopBtn.onclick=()=>{renderShop();shop.classList.add('open')};closeShop.onclick=()=>shop.classList.remove('open');document.getElementById('back').onclick=()=>location.href='index.html';hud();
 </script>
 </body>

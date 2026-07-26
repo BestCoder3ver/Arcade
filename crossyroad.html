@@ -630,6 +630,7 @@ canvas.addEventListener('touchend', e=>{
 
 // Shop touch handler for mobile (iOS fix)
 canvas.addEventListener('touchstart', function(e) {
+  if(window.PointerEvent) return;
   if(gs === 'shop') {
     const r = canvas.getBoundingClientRect();
     const t = e.touches[0];
