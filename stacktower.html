@@ -677,13 +677,6 @@ window.addEventListener('pointerdown', e => {
     }
     placeBlock();
 });
-window.addEventListener('touchstart', e => {
-    if(e.target.closest('button')){
-        return;
-    }
-    e.preventDefault();
-    placeBlock();
-}, {passive:false});
 
 resize();
 reset();
