@@ -1,480 +1,480 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rhythm Game</title>
-
-<style>
-button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    -webkit-user-select:none;
-    user-select:none;
-    touch-action:none;
-}
-
-body{
-    background:#111;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    overflow:hidden;
-    font-family:Arial,Helvetica,sans-serif;
-    color:white;
-}
-
-#game{
-    position:relative;
-    width:95vw;
-    max-width:520px;
-
-    height:85vh;
-    max-height:900px;
-
-    background:#222;
-    overflow:hidden;
-    border:4px solid #555;
-}
-
-#score{
-    position:absolute;
-    top:15px;
-    left:50%;
-    transform:translateX(-50%);
-    font-size:34px;
-    font-weight:bold;
-    z-index:100;
-}
-
-/* ---------- LANES ---------- */
-
-.lane{
-    position:absolute;
-    top:0;
-    width:25%;
-    height:900px;
-    background:#2b2b2b;
-}
-
-.line{
-    position:absolute;
-    top:0;
-    bottom:0;
-    width:2px;
-    background:white;
-    z-index:20;
-}
-
-/* ---------- HIT LINE ---------- */
-
-#judgeLine{
-    position:absolute;
-    left:0;
-    right:0;
-    bottom:180px;
-    height:3px;
-    background:#888;
-    z-index:40;
-}
-
-/* ---------- HIT PADS ---------- */
-
-.pad{
-    position:absolute;
-    bottom:140px;
-    width:25%;
-    height:80px;
-    background:transparent;
-    z-index:35;
-    transition:.08s;
-}
-
-/* ---------- NOTES ---------- */
-
-.note{
-    position:absolute;
-    width:calc(25% - 4px);;
-    height:80px;
-    background:#00ff66;
-    border-radius:10px;
-    z-index:30;
-}
-
-/* ---------- GAME OVER ---------- */
-
-#gameover{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,.88);
-    display:none;
-    justify-content:center;
-    align-items:center;
-    flex-direction:column;
-    z-index:200;
-    font-size:48px;
-    text-align:center;
-}
-
-button{
-    margin-top:30px;
-    font-size:28px;
-    padding:12px 28px;
-    cursor:pointer;
-}
-
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Neon Piano Tiles</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;background:#070912;color:white;font-family:Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+    button,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-family:inherit}
+    .screen{position:relative;width:100vw;height:100dvh;overflow:hidden;background:radial-gradient(circle at top,#172554 0,#070912 58%)}
+    .hud{position:absolute;left:10px;right:10px;top:8px;z-index:5;pointer-events:none}
+    .hud-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .stats{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{min-width:78px;padding:8px 10px;border:1px solid rgba(125,211,252,.26);border-radius:8px;background:rgba(3,7,18,.76);text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.28)}
+    .label{display:block;font-size:11px;color:#93c5fd;font-weight:bold;text-transform:uppercase}
+    .value{display:block;margin-top:2px;font-size:20px;font-weight:bold}
+    .score-top{position:absolute;left:50%;top:0;transform:translateX(-50%);min-width:130px;padding:8px 16px;border:1px solid rgba(56,189,248,.36);border-radius:8px;background:rgba(3,7,18,.84);text-align:center;box-shadow:0 0 24px rgba(56,189,248,.2)}
+    .score-top .value{font-size:28px}
+    #hubButton{pointer-events:auto;border:0;border-radius:8px;background:#38bdf8;color:#082f49;font-weight:bold;padding:10px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+    #hubButton:hover{background:white}
+    .song-name{position:absolute;left:50%;top:74px;transform:translateX(-50%);padding:6px 12px;border-radius:8px;background:rgba(3,7,18,.58);color:#bfdbfe;font-size:13px;font-weight:bold;white-space:nowrap;pointer-events:none}
+    .board{position:absolute;left:50%;top:0;bottom:0;transform:translateX(-50%);width:min(100vw,520px);display:grid;grid-template-columns:repeat(4,1fr);border-left:1px solid rgba(255,255,255,.12);border-right:1px solid rgba(255,255,255,.12);background:rgba(2,6,23,.5);touch-action:none}
+    .lane{position:relative;border-left:1px solid rgba(255,255,255,.13);border-right:1px solid rgba(255,255,255,.05);overflow:hidden}
+    .lane.hit{background:rgba(56,189,248,.18)}
+    .lane.holding{background:rgba(250,204,21,.13)}
+    .key-label{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:2;color:rgba(255,255,255,.42);font-size:18px;font-weight:bold}
+    .target{position:absolute;left:0;right:0;bottom:76px;height:92px;border-top:2px solid rgba(56,189,248,.7);border-bottom:2px solid rgba(56,189,248,.35);background:rgba(14,165,233,.08)}
+    .tile{position:absolute;left:8px;right:8px;height:132px;border-radius:8px;background:linear-gradient(180deg,#111827,#020617);border:1px solid rgba(255,255,255,.22);box-shadow:0 0 18px rgba(56,189,248,.18),inset 0 -8px 0 rgba(0,0,0,.25)}
+    .tile.hold{background:linear-gradient(180deg,#fde047,#f59e0b);box-shadow:0 0 22px rgba(250,204,21,.58),inset 0 -8px 0 rgba(0,0,0,.18)}
+    .tile.hold::after{content:"HOLD";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:#422006;font-size:13px;font-weight:bold}
+    .tile.active{outline:3px solid white}
+    .spark{position:absolute;width:10px;height:10px;border-radius:50%;background:#38bdf8;pointer-events:none}
+    .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.78);padding:18px;text-align:center}
+    .panel{width:min(94vw,520px);max-height:92dvh;overflow:auto;border:1px solid rgba(125,211,252,.3);border-radius:8px;background:rgba(3,7,18,.96);padding:20px;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+    .panel h1{margin:0 0 8px;color:#38bdf8;font-size:38px;text-shadow:0 0 18px rgba(56,189,248,.5)}
+    .panel p{margin:8px 0;color:#dbeafe;line-height:1.35}
+    .song-select{width:100%;margin:12px 0 8px;padding:11px;border:1px solid rgba(125,211,252,.36);border-radius:8px;background:#0f172a;color:white;font-size:16px;font-weight:bold}
+    .song-meta{min-height:22px;margin:8px 0 2px;color:#fde68a;font-weight:bold}
+    .panel button{margin-top:12px;border:0;border-radius:8px;background:#22c55e;color:#052e16;font-weight:bold;font-size:17px;padding:12px 24px;cursor:pointer}
+    .hidden{display:none}
+    @media (max-width:560px){
+      .hud{left:7px;right:7px;top:7px}
+      .pill{min-width:64px;padding:7px 7px}
+      .value{font-size:17px}
+      .score-top{top:58px;padding:6px 13px}
+      .score-top .label{font-size:10px}
+      .score-top .value{font-size:24px}
+      .song-name{top:112px;font-size:12px;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+      #hubButton{font-size:13px;padding:9px 10px}
+      .tile{left:5px;right:5px;height:120px}
+      .target{bottom:64px;height:86px}
+      .key-label{bottom:15px;font-size:16px}
+    }
+  </style>
 </head>
-
 <body>
+  <main class="screen">
+    <div class="hud">
+      <div class="hud-row">
+        <div class="stats">
+          <div class="pill"><span class="label">Best</span><span id="best" class="value">0</span></div>
+          <div class="pill"><span class="label">Combo</span><span id="combo" class="value">0</span></div>
+        </div>
+        <button id="hubButton" onclick="location.href='index.html'">Back to Hub</button>
+      </div>
+      <div class="score-top"><span class="label">Score</span><span id="score" class="value">0</span></div>
+    </div>
+    <div id="songName" class="song-name">Choose a song</div>
 
-<div id="game">
+    <section id="board" class="board" aria-label="Neon Piano Tiles board">
+      <div class="lane" data-lane="0"><div class="target"></div><div class="key-label">D</div></div>
+      <div class="lane" data-lane="1"><div class="target"></div><div class="key-label">F</div></div>
+      <div class="lane" data-lane="2"><div class="target"></div><div class="key-label">J</div></div>
+      <div class="lane" data-lane="3"><div class="target"></div><div class="key-label">K</div></div>
+    </section>
 
-<div id="score">Score: 0</div>
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <h1>Neon Piano Tiles</h1>
+        <p>Pick a song. Tap black tiles, hold long yellow tiles, and build combo.</p>
+        <p>Use D-F-J-K, or tap and hold lanes on mobile.</p>
+        <select id="songSelect" class="song-select" aria-label="Song select"></select>
+        <div id="songMeta" class="song-meta"></div>
+        <button id="startBtn">Start Song</button>
+      </div>
+    </div>
+  </main>
 
-<div class="lane" style="left:0%"></div>
-<div class="lane" style="left:25%"></div>
-<div class="lane" style="left:50%"></div>
-<div class="lane" style="left:75%"></div>
+  <script>
+    const board = document.getElementById('board');
+    const lanes = Array.from(document.querySelectorAll('.lane'));
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const comboEl = document.getElementById('combo');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const songSelect = document.getElementById('songSelect');
+    const songMeta = document.getElementById('songMeta');
+    const songNameEl = document.getElementById('songName');
+    const bestKey = 'neonPianoTilesBest';
+    const keys = {d:0, f:1, j:2, k:3};
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    const tileHeight = 126;
+    const hitWindow = 0.22;
 
-<div class="line" style="left:0%"></div>
-<div class="line" style="left:25%"></div>
-<div class="line" style="left:50%"></div>
-<div class="line" style="left:75%"></div>
-<div class="line" style="left:100%"></div>
+    const songDefs = [
+      ['Starter Sparks','Easy',92,36,[0,1,2,3,2,1],0.10],
+      ['Soft Circuit','Easy',98,40,[0,2,1,3,1,2],0.12],
+      ['Blue Lantern','Easy',104,42,[0,0,1,2,3,2,1,3],0.14],
+      ['Cloud Keys','Easy',108,44,[1,2,3,2,0,1,2,1],0.14],
+      ['Night Arcade','Medium',124,56,[0,1,3,2,1,0,2,3],0.18],
+      ['Crystal Rush','Medium',132,62,[0,2,3,1,2,0,1,3,2,1],0.20],
+      ['Laser Waltz','Medium',138,66,[0,3,1,2,0,1,3,2],0.22],
+      ['Pixel Parade','Medium',144,70,[1,0,2,1,3,2,0,3],0.24],
+      ['Thunder Run','Hard',156,82,[0,1,2,3,1,3,2,0,2,1],0.26],
+      ['Turbo Metro','Hard',162,88,[0,2,1,3,2,0,3,1,0,2,3,1],0.28],
+      ['Firewire','Hard',168,92,[3,2,1,0,2,3,1,0,1,3,2,0],0.30],
+      ['Chrome Pulse','Hard',174,96,[0,3,0,2,1,3,2,0,1,2,3,1],0.32],
+      ['Nova Sprint','Hard',180,100,[0,1,3,2,0,2,1,3,0,3,2,1],0.34],
+      ['Hyper Keys','Hard',188,108,[0,2,0,3,1,3,1,2,0,1,2,3],0.36],
+      ['Volt Storm','Hard',196,114,[3,1,2,0,1,3,0,2,3,2,1,0],0.38],
+      ['Midnight Overdrive','Hard',204,120,[0,3,2,1,3,0,1,2,0,2,3,1],0.40],
+      ['Panic Pattern','Expert',212,128,[0,1,2,1,3,2,0,3,1,0,2,3,2,1],0.42],
+      ['Neon Punisher','Expert',224,136,[3,2,0,1,3,0,2,1,0,3,1,2,3,0],0.45],
+      ['Final Voltage','Expert',236,146,[0,2,3,1,0,3,2,1,3,0,1,2,0,3],0.48],
+      ['Boss Rush Keys','Expert',248,156,[0,3,1,2,3,1,0,2,1,3,2,0,3,2,1,0],0.52]
+    ];
 
-<div id="judgeLine"></div>
+    const songs = songDefs.map(([name, difficulty, bpm, steps, pattern, holdRate], index) => ({
+      name,
+      difficulty,
+      bpm,
+      chart: makeChart(index + 3, bpm, steps, pattern, holdRate)
+    }));
 
-<div class="pad" id="pad0" style="left:0%"></div>
-<div class="pad" id="pad1" style="left:25%"></div>
-<div class="pad" id="pad2" style="left:50%"></div>
-<div class="pad" id="pad3" style="left:75%"></div>
+    let running = false;
+    let lastTime = 0;
+    let songTime = 0;
+    let score = 0;
+    let combo = 0;
+    let best = Number(localStorage.getItem(bestKey)) || 0;
+    let currentSong = songs[0];
+    let nextIndex = 0;
+    let tiles = [];
+    let activeHolds = [null,null,null,null];
+    let pressed = [false,false,false,false];
+    let sparks = [];
+    let audioCtx = null;
 
-<div id="gameover">
-    GAME OVER
-    <br><br>
-
-    <button onclick="location.reload()">
-        Play Again
-    </button>
-
-    <br><br>
-
-    <button onclick="location.href='index.html'">
-        Return to Hub
-    </button>
-</div>
-
-<script>
-
-// ===== GLOBAL AUTH CHECK =====
-(function() {
-  const unlockTime = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
-  if (Date.now() >= unlockTime) {
-    localStorage.removeItem('globalUnlockTime');
-    window.location.href = 'index.html?needauth=1';
-    return;
-  }
-  setInterval(function() {
-    const t = parseInt(localStorage.getItem('globalUnlockTime')) || 0;
-    if (Date.now() >= t) {
-      localStorage.removeItem('globalUnlockTime');
-      window.location.href = 'index.html?needauth=1';
-    }
-  }, 1000);
-})();
-
-const game = document.getElementById("game");
-const scoreText = document.getElementById("score");
-const gameOver = document.getElementById("gameover");
-
-const pads = [
-    document.getElementById("pad0"),
-    document.getElementById("pad1"),
-    document.getElementById("pad2"),
-    document.getElementById("pad3")
-];
-
-function getLaneX(lane){
-    return lane * (game.clientWidth / 4);
-}
-
-const keyMap = {
-    "d":0,
-    "f":1,
-    "j":2,
-    "k":3
-};
-
-const laneNotes = [261.63, 329.63, 392.00, 523.25];
-const songPattern = [0, 1, 2, 1, 3, 2, 1, 0, 0, 2, 3, 2, 1, 2, 0, 1];
-
-let notes = [];
-let score = 0;
-let speed = 4;
-let spawnDelay = 700;
-let playing = true;
-let audioCtx = null;
-let musicTimer = null;
-let musicStep = 0;
-
-let HIT_Y = 0;
-
-function getAudioContext(){
-    if(!audioCtx){
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if(audioCtx.state === "suspended") audioCtx.resume();
-    return audioCtx;
-}
-
-function playTone(freq, duration, type = "triangle", volume = 0.07, delay = 0){
-    const ctx = getAudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const start = ctx.currentTime + delay;
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, start);
-
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(start + duration);
-}
-
-function playLaneNote(lane){
-    playTone(laneNotes[lane], 0.12, "sine", 0.08);
-}
-
-function playMusicStep(){
-    const lane = songPattern[musicStep % songPattern.length];
-    const bassLane = songPattern[(musicStep + 8) % songPattern.length];
-
-    playTone(laneNotes[lane], 0.18, "triangle", 0.035);
-
-    if(musicStep % 2 === 0){
-        playTone(laneNotes[bassLane] / 2, 0.22, "sine", 0.035, 0.02);
-    }
-
-    if(musicStep % 4 === 3){
-        playTone(laneNotes[lane] * 2, 0.08, "square", 0.018, 0.04);
-    }
-
-    musicStep++;
-}
-
-function startMusic(){
-    getAudioContext();
-    if(musicTimer) return;
-    playMusicStep();
-    musicTimer = setInterval(playMusicStep, 210);
-}
-
-function stopMusic(){
-    clearInterval(musicTimer);
-    musicTimer = null;
-}
-
-function updateHitY(){
-    const judgeLine = document.getElementById("judgeLine");
-    HIT_Y = judgeLine.offsetTop + judgeLine.offsetHeight / 2;
-}
-
-updateHitY();
-window.addEventListener("resize", updateHitY);
-window.addEventListener("load", updateHitY);
-
-function spawnNote(){
-
-    if(!playing) return;
-
-    // Prevent notes from spawning too close together
-    if(notes.length){
-        const newest = notes[notes.length-1];
-        if(newest.y < 140){
-            return;
+    function makeChart(seed, bpm, steps, pattern, holdRate){
+      const beat = 60 / bpm;
+      const chart = [];
+      let lastLane = -1;
+      for(let i = 0; i < steps; i++){
+        const lane = pattern[(i + seed) % pattern.length];
+        const syncopate = i > 8 && (i + seed) % 7 === 0;
+        const time = 1.6 + i * beat * (syncopate ? 0.5 : 1);
+        const hold = i > 5 && (i + seed) % Math.max(3, Math.round(1 / holdRate)) === 0 && lane !== lastLane;
+        chart.push({
+          lane,
+          time,
+          duration: hold ? beat * (1.5 + ((i + seed) % 3) * 0.45) : 0,
+          hit:false,
+          started:false,
+          done:false,
+          missed:false
+        });
+        if(i > 10 && (i + seed) % 9 === 0){
+          const secondLane = (lane + 2 + seed) % 4;
+          chart.push({
+            lane: secondLane,
+            time: time + beat * 0.5,
+            duration: 0,
+            hit:false,
+            started:false,
+            done:false,
+            missed:false
+          });
         }
+        lastLane = lane;
+      }
+      return chart.sort((a, b) => a.time - b.time);
     }
 
-    const lane = Math.floor(Math.random()*4);
+    function cloneChart(chart){
+      return chart.map(note => ({...note}));
+    }
 
-    const note = document.createElement("div");
-    note.className = "note";
-    note.style.left = getLaneX(lane) + "px";
-    note.style.top = "-80px";
+    function populateSongs(){
+      songSelect.innerHTML = '';
+      songs.forEach((song, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${song.name} - ${song.difficulty} - ${song.bpm} BPM`;
+        songSelect.appendChild(option);
+      });
+      updateSongMeta();
+    }
 
-    game.appendChild(note);
+    function updateSongMeta(){
+      const song = songs[Number(songSelect.value) || 0];
+      songMeta.textContent = `${song.difficulty} • ${song.bpm} BPM • ${song.chart.length} notes`;
+    }
 
-    notes.push({
-        lane: lane,
-        y: -80,
-        element: note
+    function startGame(){
+      currentSong = songs[Number(songSelect.value) || 0];
+      currentSong = {...currentSong, chart: cloneChart(currentSong.chart)};
+      running = true;
+      overlay.classList.add('hidden');
+      lastTime = performance.now();
+      songTime = 0;
+      score = 0;
+      combo = 0;
+      nextIndex = 0;
+      tiles = [];
+      activeHolds = [null,null,null,null];
+      pressed = [false,false,false,false];
+      sparks = [];
+      songNameEl.textContent = currentSong.name + ' - ' + currentSong.difficulty;
+      updateHud();
+      requestAnimationFrame(loop);
+    }
+
+    function loop(now){
+      if(!running) return;
+      const dt = Math.min(0.033, (now - lastTime) / 1000);
+      lastTime = now;
+      songTime += dt;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function update(dt){
+      const lead = 1.62;
+      while(nextIndex < currentSong.chart.length && currentSong.chart[nextIndex].time - songTime < lead){
+        tiles.push(currentSong.chart[nextIndex]);
+        nextIndex++;
+      }
+
+      activeHolds.forEach((tile, lane) => {
+        if(!tile) return;
+        if(!pressed[lane] && songTime < tile.time + tile.duration - hitWindow){
+          endGame('Released a hold tile early.');
+          return;
+        }
+        score += dt * 18;
+        if(songTime >= tile.time + tile.duration - hitWindow){
+          finishHold(lane);
+        }
+      });
+
+      tiles.forEach(tile => {
+        if(tile.done || tile.missed) return;
+        const lateBy = songTime - (tile.time + tile.duration);
+        if(!tile.duration && !tile.hit && songTime - tile.time > hitWindow){
+          tile.missed = true;
+          endGame('Missed tile.');
+        } else if(tile.duration && !tile.started && songTime - tile.time > hitWindow){
+          tile.missed = true;
+          endGame('Missed hold tile.');
+        } else if(tile.duration && tile.started && lateBy > hitWindow && !tile.done){
+          finishHold(tile.lane);
+        }
+      });
+
+      sparks.forEach(spark => {
+        spark.x += spark.vx * dt;
+        spark.y += spark.vy * dt;
+        spark.life -= dt;
+      });
+      sparks = sparks.filter(spark => spark.life > 0);
+      tiles = tiles.filter(tile => !tile.done && !tile.missed);
+
+      if(nextIndex >= currentSong.chart.length && tiles.length === 0){
+        finishSong();
+      }
+      updateHud();
+    }
+
+    function render(){
+      const targetY = board.clientHeight - 142;
+      const speed = board.clientHeight / 1.62;
+      lanes.forEach(lane => lane.querySelectorAll('.tile,.spark').forEach(el => el.remove()));
+
+      tiles.forEach(tile => {
+        if(tile.done || tile.missed) return;
+        const height = tile.duration ? tileHeight + tile.duration * speed : tileHeight;
+        const y = targetY - (tile.time - songTime) * speed - (tile.duration ? height - tileHeight : 0);
+        const el = document.createElement('div');
+        el.className = 'tile' + (tile.duration ? ' hold' : '') + (tile.started ? ' active' : '');
+        el.style.height = height + 'px';
+        el.style.transform = `translateY(${y}px)`;
+        lanes[tile.lane].appendChild(el);
+      });
+
+      sparks.forEach(spark => {
+        const el = document.createElement('div');
+        el.className = 'spark';
+        el.style.left = spark.x + 'px';
+        el.style.top = spark.y + 'px';
+        el.style.opacity = Math.max(0, spark.life * 2);
+        lanes[spark.lane].appendChild(el);
+      });
+    }
+
+    function pressLane(lane){
+      pressed[lane] = true;
+      if(!running){
+        startGame();
+        return;
+      }
+
+      flashLane(lane);
+      const tile = findHittableTile(lane);
+      if(!tile){
+        endGame('Wrong tap.');
+        return;
+      }
+
+      if(tile.duration){
+        tile.started = true;
+        activeHolds[lane] = tile;
+        lanes[lane].classList.add('holding');
+        combo++;
+        score += 20 + combo;
+        playNote(lane, true, tile.duration);
+      } else {
+        tile.hit = true;
+        tile.done = true;
+        combo++;
+        score += 10 + combo;
+        playNote(lane, false, 0.16);
+        burst(lane, '#38bdf8');
+      }
+      updateHud();
+    }
+
+    function releaseLane(lane){
+      pressed[lane] = false;
+      lanes[lane].classList.remove('holding');
+      const tile = activeHolds[lane];
+      if(tile && running && songTime < tile.time + tile.duration - hitWindow){
+        endGame('Released a hold tile early.');
+      }
+    }
+
+    function findHittableTile(lane){
+      return tiles.find(tile => {
+        if(tile.lane !== lane || tile.done || tile.missed || tile.started) return false;
+        return Math.abs(songTime - tile.time) <= hitWindow;
+      });
+    }
+
+    function finishHold(lane){
+      const tile = activeHolds[lane];
+      if(!tile) return;
+      tile.hit = true;
+      tile.done = true;
+      activeHolds[lane] = null;
+      lanes[lane].classList.remove('holding');
+      score += 35 + combo * 2;
+      burst(lane, '#facc15');
+    }
+
+    function flashLane(lane){
+      lanes[lane].classList.add('hit');
+      setTimeout(() => lanes[lane].classList.remove('hit'), 90);
+    }
+
+    function burst(lane, color){
+      const width = lanes[lane].clientWidth;
+      const height = lanes[lane].clientHeight;
+      for(let i = 0; i < 12; i++){
+        sparks.push({
+          lane,
+          x: width * (0.22 + Math.random() * 0.56),
+          y: height - 114,
+          vx:(Math.random() - 0.5) * 100,
+          vy:-45 - Math.random() * 120,
+          life:0.35 + Math.random() * 0.25,
+          color
+        });
+      }
+    }
+
+    function playNote(lane, hold, duration){
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if(!AudioContext) return;
+      if(!audioCtx) audioCtx = new AudioContext();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = hold ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(notes[lane] * (hold ? 1.5 : 1), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(hold ? 0.2 : 0.14, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(1.4, Math.max(0.16, duration)));
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + Math.min(1.5, Math.max(0.18, duration + 0.05)));
+    }
+
+    function updateHud(){
+      scoreEl.textContent = Math.floor(score);
+      comboEl.textContent = combo;
+      bestEl.textContent = best;
+    }
+
+    function endGame(reason){
+      if(!running) return;
+      running = false;
+      activeHolds = [null,null,null,null];
+      pressed = [false,false,false,false];
+      lanes.forEach(lane => lane.classList.remove('holding'));
+      best = Math.max(best, Math.floor(score));
+      localStorage.setItem(bestKey, String(best));
+      updateHud();
+      overlay.classList.remove('hidden');
+      overlay.querySelector('h1').textContent = 'Song Failed';
+      overlay.querySelector('p').textContent = reason + ' Score: ' + Math.floor(score);
+      overlay.querySelectorAll('p')[1].textContent = 'Choose a song or restart this one.';
+      startBtn.textContent = 'Restart Song';
+    }
+
+    function finishSong(){
+      running = false;
+      best = Math.max(best, Math.floor(score));
+      localStorage.setItem(bestKey, String(best));
+      updateHud();
+      overlay.classList.remove('hidden');
+      overlay.querySelector('h1').textContent = 'Song Clear';
+      overlay.querySelector('p').textContent = currentSong.name + ' complete. Score: ' + Math.floor(score);
+      overlay.querySelectorAll('p')[1].textContent = 'Pick another song or replay for a better combo.';
+      startBtn.textContent = 'Play Again';
+    }
+
+    lanes.forEach(lane => {
+      const laneNumber = Number(lane.dataset.lane);
+      lane.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        pressLane(laneNumber);
+      });
+      lane.addEventListener('pointerup', event => {
+        event.preventDefault();
+        releaseLane(laneNumber);
+      });
+      lane.addEventListener('pointercancel', () => releaseLane(laneNumber));
+      lane.addEventListener('pointerleave', event => {
+        if(event.pointerType === 'mouse') return;
+        releaseLane(laneNumber);
+      });
     });
 
-}
-
-function spawnLoop(){
-
-    if(!playing) return;
-
-    spawnNote();
-
-    spawnDelay = Math.max(180,700-score*8);
-
-    setTimeout(spawnLoop,spawnDelay);
-
-}
-
-spawnLoop();
-
-function update(){
-
-    if(!playing) return;
-
-    speed = 4 + score*0.15;
-
-    for(let i=notes.length-1;i>=0;i--){
-
-        const note = notes[i];
-
-        note.y += speed;
-
-        note.element.style.top = note.y + "px";
-
-        if(note.y + 40 > HIT_Y + 70){
-
-            note.element.style.background = "#ff3333";
-
-            setTimeout(()=>{
-                endGame();
-            },100);
-
-            return;
-        }
-
-    }
-
-    requestAnimationFrame(update);
-
-}
-
-requestAnimationFrame(update);
-
-function flashPad(lane){
-
-    pads[lane].style.background = "#66ff66";
-
-    setTimeout(()=>{
-        pads[lane].style.background = "transparent";
-    },80);
-
-}
-
-function pressLane(lane){
-
-    if(!playing) return;
-
-    startMusic();
-    playLaneNote(lane);
-    flashPad(lane);
-
-    let hit = -1;
-
-    for(let i=0;i<notes.length;i++){
-
-        const note = notes[i];
-
-        if(note.lane !== lane) continue;
-
-        if(Math.abs((note.y+40)-HIT_Y) < 70){
-
-            hit = i;
-            break;
-
-        }
-
-    }
-
-if(hit === -1){
-
-    endGame();
-
-    return;
-}
-
-    notes[hit].element.remove();
-    notes.splice(hit,1);
-
-    score++;
-    scoreText.textContent = "Score: " + score;
-
-}
-
-document.addEventListener("keydown",(e)=>{
-
-    const lane = keyMap[e.key.toLowerCase()];
-
-    if(lane === undefined) return;
-
-    pressLane(lane);
-
-});
-
-function pointerLane(clientX){
-    if(!playing) return;
-
-    const rect = game.getBoundingClientRect();
-    const x = clientX - rect.left;
-    let lane = Math.floor(x / (rect.width / 4));
-
-    if(lane < 0) lane = 0;
-    if(lane > 3) lane = 3;
-
-    pressLane(lane);
-}
-
-if(window.PointerEvent){
-    game.addEventListener("pointerdown",(e)=>{
-        e.preventDefault();
-        pointerLane(e.clientX);
-    });
-}else{
-    game.addEventListener("mousedown",(e)=>{
-        e.preventDefault();
-        pointerLane(e.clientX);
+    window.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      if(key in keys && !pressed[keys[key]]){
+        event.preventDefault();
+        pressLane(keys[key]);
+      }
     });
 
-    game.addEventListener("touchstart",(e)=>{
-        for(const touch of e.touches){
-            pointerLane(touch.clientX);
-        }
+    window.addEventListener('keyup', event => {
+      const key = event.key.toLowerCase();
+      if(key in keys){
+        event.preventDefault();
+        releaseLane(keys[key]);
+      }
+    });
 
-        e.preventDefault();
-    },{passive:false});
-}
-
-function endGame(){
-
-    if(!playing) return;
-
-    playing = false;
-    stopMusic();
-
-    gameOver.style.display = "flex";
-
-}
-
-</script>
-
-<!-- Repo refresh: 2026-07-25 09:30:35 +07 -->
+    songSelect.addEventListener('change', updateSongMeta);
+    startBtn.addEventListener('click', startGame);
+    populateSongs();
+    updateHud();
+  </script>
 </body>
 </html>
