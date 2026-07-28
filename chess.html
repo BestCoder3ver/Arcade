@@ -21,14 +21,15 @@
     #players{display:flex;justify-content:center;gap:8px;color:#dbeafe;font-size:13px;line-height:1}
     #boardWrap{display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
     #board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(98vw,calc(100vh - 176px),760px);aspect-ratio:1;border:4px solid #334155;box-shadow:0 12px 30px rgba(0,0,0,.35)}
-    .sq{border:0;font-size:clamp(28px,7vw,58px);line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:"Arial Unicode MS","Segoe UI Symbol","Noto Sans Symbols 2",Arial,sans-serif}.piece-white{color:#fffdf2;text-shadow:0 2px 0 #111827,2px 0 0 #111827,-2px 0 0 #111827,0 -2px 0 #111827,0 0 6px rgba(0,0,0,.75)}.piece-black{color:#05070a;text-shadow:0 2px 0 #f8fafc,2px 0 0 #f8fafc,-2px 0 0 #f8fafc,0 -2px 0 #f8fafc,0 0 5px rgba(255,255,255,.85)}.light{background:#e2e8f0}.dark{background:#64748b}.sq.sel{outline:4px solid #facc15;outline-offset:-4px}.sq.move{box-shadow:inset 0 0 0 5px #22c55e}
+    .sq{border:0;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}.chess-piece{width:86%;height:86%;display:block;filter:drop-shadow(0 4px 3px rgba(15,23,42,.35));pointer-events:none}.light{background:#e2e8f0}.dark{background:#64748b}.sq.sel{outline:4px solid #facc15;outline-offset:-4px}.sq.move{box-shadow:inset 0 0 0 5px #22c55e}
     #bottomControls{display:flex;justify-content:center;gap:8px}#bottomControls button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}#newGame{background:#38bdf8;color:#062135}#pvp{background:#a78bfa;color:#160f32}#back{justify-self:end;padding:6px 10px;min-height:30px;background:cyan;color:#000;font-size:12px}
     #promotionModal{position:fixed;inset:0;background:rgba(5,7,12,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
     #promotionModal.open{display:flex}
     #promotionPanel{width:min(92vw,340px);background:#1f2937;border:1px solid #475569;border-radius:8px;padding:16px;box-shadow:0 18px 48px rgba(0,0,0,.5);text-align:center}
     #promotionPanel h2{margin:0 0 14px;font-size:22px}
     #promotionChoices{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    #promotionChoices button{min-width:0;min-height:62px;font-size:34px;background:#e2e8f0;color:#111827}
+    #promotionChoices button{min-width:0;min-height:62px;background:#e2e8f0;color:#111827;padding:6px}
+    #promotionChoices .chess-piece{width:48px;height:48px;margin:auto}
     @media(max-width:560px){#app{padding:7px;gap:5px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#topControls{gap:6px;flex-wrap:nowrap}#difficulty{gap:4px}#difficulty button{padding:4px 7px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 132px))}#bottomControls{gap:4px}#bottomControls button{min-height:28px;font-size:12px;padding:4px 8px;min-width:auto}#back{font-size:11px;min-height:28px}}
   </style>
 </head>
@@ -45,10 +46,10 @@
   <div id="promotionPanel">
     <h2 id="promotionTitle">Promote Pawn</h2>
     <div id="promotionChoices">
-      <button data-promotion="q" aria-label="Queen">♕</button>
-      <button data-promotion="r" aria-label="Rook">♖</button>
-      <button data-promotion="b" aria-label="Bishop">♗</button>
-      <button data-promotion="n" aria-label="Knight">♘</button>
+      <button data-promotion="q" aria-label="Queen"></button>
+      <button data-promotion="r" aria-label="Rook"></button>
+      <button data-promotion="b" aria-label="Bishop"></button>
+      <button data-promotion="n" aria-label="Knight"></button>
     </div>
   </div>
 </div>
@@ -57,7 +58,15 @@
 (function(){const u=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=u){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';return;}setInterval(()=>{const t=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=t){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';}},1000);})();
 const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), winsEl=document.getElementById('wins'), totalEl=document.getElementById('total'), modeLabel=document.getElementById('modeLabel'), opponentLabel=document.getElementById('opponentLabel'), pvpBtn=document.getElementById('pvp'), promotionModal=document.getElementById('promotionModal');
 const difficultyButtons=[...document.querySelectorAll('[data-difficulty]')];
-const pieces={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
+const pieceShapes={
+  p:'<circle cx="50" cy="28" r="13"/><path d="M37 50c0-10 6-17 13-17s13 7 13 17v12H37z"/><path d="M31 74h38l6 10H25z"/>',
+  n:'<path d="M30 78h43l5 8H22z"/><path d="M34 70c3-20 16-24 14-43 9 3 22 13 25 27l-9 5c-5-5-11-8-18-8 2 8-4 14-12 19z"/><circle cx="55" cy="34" r="3"/>',
+  b:'<path d="M30 78h40l6 8H24z"/><path d="M38 68h24c4-8 4-19-4-29l-8-11-8 11c-8 10-8 21-4 29z"/><circle cx="50" cy="22" r="8"/><path d="M57 36 44 53"/>',
+  r:'<path d="M28 78h44l5 8H23z"/><path d="M34 39h32v36H34z"/><path d="M30 24h9v8h8v-8h8v8h8v-8h9v18H30z"/>',
+  q:'<path d="M28 78h44l5 8H23z"/><path d="M34 69h32l5-37-14 18-7-24-7 24-14-18z"/><circle cx="29" cy="29" r="7"/><circle cx="50" cy="21" r="7"/><circle cx="71" cy="29" r="7"/>',
+  k:'<path d="M28 78h44l5 8H23z"/><path d="M35 69h30l5-33-14 13-6-20-6 20-14-13z"/><path d="M50 13v22M39 24h22"/>'
+};
+function pieceSvg(name){const color=name[0],type=name[1],fill=color==='w'?'#fff7df':'#202636',stroke=color==='w'?'#7a4e26':'#070a12',shine=color==='w'?'#ffffff':'#596174';return `<svg class="chess-piece" viewBox="0 0 100 100" aria-hidden="true"><g fill="${fill}" stroke="${stroke}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">${pieceShapes[type]}</g><ellipse cx="39" cy="34" rx="9" ry="5" fill="${shine}" opacity=".42" stroke="none"/></svg>`}
 let game=new Chess(), selected=null, legal=[], pvp=false, difficulty='easy', gameOver=false;
 let pendingPromotion=null;
 let stats=JSON.parse(localStorage.getItem('chess_stats')||'{"wins":0,"total":0}');
@@ -70,10 +79,10 @@ function makeBoard(){boardEl.innerHTML='';for(let r=0;r<8;r++)for(let c=0;c<8;c+
 function coord(r,c){return 'abcdefgh'[c]+(8-r)}
 function newGame(){game=new Chess();selected=null;legal=[];pendingPromotion=null;promotionModal.classList.remove('open');gameOver=false;render();labels()}
 function labels(){opponentLabel.textContent=pvp?'Player 2: Black':'AI: Black';modeLabel.textContent=pvp?'PvP':cap(difficulty);pvpBtn.textContent=pvp?'AI Mode':'PvP';if(gameOver)return;statusEl.textContent=pvp?(game.turn()==='w'?'White turn':'Black turn'):(game.turn()==='w'?'Your turn - move white':'AI is thinking...')}
-function render(){const b=game.board();[...boardEl.children].forEach((sq,i)=>{const r=Math.floor(i/8),c=i%8,p=b[r][c],name=p?p.color+p.type:'';sq.textContent=p?pieces[name]:'';sq.classList.toggle('piece-white',!!p&&p.color==='w');sq.classList.toggle('piece-black',!!p&&p.color==='b');const s=sq.dataset.square;sq.classList.toggle('sel',selected===s);sq.classList.toggle('move',legal.some(m=>m.to===s))})}
+function render(){const b=game.board();[...boardEl.children].forEach((sq,i)=>{const r=Math.floor(i/8),c=i%8,p=b[r][c],name=p?p.color+p.type:'';sq.innerHTML=p?pieceSvg(name):'';const s=sq.dataset.square;sq.classList.toggle('sel',selected===s);sq.classList.toggle('move',legal.some(m=>m.to===s))})}
 function clickSquare(square){if(gameOver||pendingPromotion||(!pvp&&game.turn()==='b'))return;const piece=game.get(square);if(piece&&piece.color===game.turn()){selected=square;legal=game.moves({square,verbose:true});render();return}if(!selected)return;const moves=legal.filter(m=>m.to===square);if(!moves.length)return;if(moves.some(isPromotion)){pendingPromotion={from:selected,to:square};updatePromotionChoices();promotionModal.classList.add('open');return}makeMove({from:selected,to:square},true)}
 function isPromotion(m){return m.flags.includes('p')}
-function updatePromotionChoices(){document.querySelectorAll('[data-promotion]').forEach(btn=>{btn.textContent=pieces[game.turn()+btn.dataset.promotion]})}
+function updatePromotionChoices(){document.querySelectorAll('[data-promotion]').forEach(btn=>{btn.innerHTML=pieceSvg(game.turn()+btn.dataset.promotion)})}
 function choosePromotion(piece){if(!pendingPromotion)return;const move={...pendingPromotion,promotion:piece};pendingPromotion=null;promotionModal.classList.remove('open');makeMove(move,true)}
 function makeMove(move,byHuman){const result=game.move(move);if(!result)return;selected=null;legal=[];if(result.flags.includes('c')||result.flags.includes('e'))captureSound();else if(result.flags.includes('k')||result.flags.includes('q'))castleSound();else byHuman?humanSound():aiSound();render();if(checkEnd())return;labels();if(!pvp&&game.turn()==='b')setTimeout(aiMove,220)}
 function aiMove(){if(gameOver)return;const moves=game.moves({verbose:true});if(!moves.length)return;let move=difficulty==='easy'?moves[Math.floor(Math.random()*moves.length)]:bestMove(moves);makeMove({from:move.from,to:move.to,promotion:move.promotion||'q'},false)}
