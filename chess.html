@@ -23,6 +23,12 @@
     #board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(98vw,calc(100vh - 176px),760px);aspect-ratio:1;border:4px solid #334155;box-shadow:0 12px 30px rgba(0,0,0,.35)}
     .sq{border:0;font-size:clamp(28px,7vw,58px);line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:"Arial Unicode MS","Segoe UI Symbol","Noto Sans Symbols 2",Arial,sans-serif}.piece-white{color:#fffdf2;text-shadow:0 2px 0 #111827,2px 0 0 #111827,-2px 0 0 #111827,0 -2px 0 #111827,0 0 6px rgba(0,0,0,.75)}.piece-black{color:#05070a;text-shadow:0 2px 0 #f8fafc,2px 0 0 #f8fafc,-2px 0 0 #f8fafc,0 -2px 0 #f8fafc,0 0 5px rgba(255,255,255,.85)}.light{background:#e2e8f0}.dark{background:#64748b}.sq.sel{outline:4px solid #facc15;outline-offset:-4px}.sq.move{box-shadow:inset 0 0 0 5px #22c55e}
     #bottomControls{display:flex;justify-content:center;gap:8px}#bottomControls button{min-height:30px;padding:5px 14px;font-size:13px;min-width:94px}#newGame{background:#38bdf8;color:#062135}#pvp{background:#a78bfa;color:#160f32}#back{justify-self:end;padding:6px 10px;min-height:30px;background:cyan;color:#000;font-size:12px}
+    #promotionModal{position:fixed;inset:0;background:rgba(5,7,12,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
+    #promotionModal.open{display:flex}
+    #promotionPanel{width:min(92vw,340px);background:#1f2937;border:1px solid #475569;border-radius:8px;padding:16px;box-shadow:0 18px 48px rgba(0,0,0,.5);text-align:center}
+    #promotionPanel h2{margin:0 0 14px;font-size:22px}
+    #promotionChoices{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    #promotionChoices button{min-width:0;min-height:62px;font-size:34px;background:#e2e8f0;color:#111827}
     @media(max-width:560px){#app{padding:7px;gap:5px}h1{font-size:22px}.stat{min-width:48px;padding:4px 6px}.stat strong{font-size:15px}#topControls{gap:6px;flex-wrap:nowrap}#difficulty{gap:4px}#difficulty button{padding:4px 7px;font-size:12px;min-height:28px}#status{font-size:13px;min-height:29px}#players{font-size:12px;gap:5px}#board{width:min(98vw,calc(100vh - 132px))}#bottomControls{gap:4px}#bottomControls button{min-height:28px;font-size:12px;padding:4px 8px;min-width:auto}#back{font-size:11px;min-height:28px}}
   </style>
 </head>
@@ -35,13 +41,25 @@
   <div id="bottomControls"><button id="newGame">New Game</button><button id="pvp">PvP</button></div>
   <section id="boardWrap"><div id="board"></div></section>
 </main>
+<div id="promotionModal" role="dialog" aria-modal="true" aria-labelledby="promotionTitle">
+  <div id="promotionPanel">
+    <h2 id="promotionTitle">Promote Pawn</h2>
+    <div id="promotionChoices">
+      <button data-promotion="q" aria-label="Queen">♕</button>
+      <button data-promotion="r" aria-label="Rook">♖</button>
+      <button data-promotion="b" aria-label="Bishop">♗</button>
+      <button data-promotion="n" aria-label="Knight">♘</button>
+    </div>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script>
 (function(){const u=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=u){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';return;}setInterval(()=>{const t=parseInt(localStorage.getItem('globalUnlockTime'))||0;if(Date.now()>=t){localStorage.removeItem('globalUnlockTime');location.href='index.html?needauth=1';}},1000);})();
-const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), winsEl=document.getElementById('wins'), totalEl=document.getElementById('total'), modeLabel=document.getElementById('modeLabel'), opponentLabel=document.getElementById('opponentLabel'), pvpBtn=document.getElementById('pvp');
+const boardEl=document.getElementById('board'), statusEl=document.getElementById('status'), winsEl=document.getElementById('wins'), totalEl=document.getElementById('total'), modeLabel=document.getElementById('modeLabel'), opponentLabel=document.getElementById('opponentLabel'), pvpBtn=document.getElementById('pvp'), promotionModal=document.getElementById('promotionModal');
 const difficultyButtons=[...document.querySelectorAll('[data-difficulty]')];
 const pieces={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
 let game=new Chess(), selected=null, legal=[], pvp=false, difficulty='easy', gameOver=false;
+let pendingPromotion=null;
 let stats=JSON.parse(localStorage.getItem('chess_stats')||'{"wins":0,"total":0}');
 let audioCtx;
 function ctx(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
@@ -50,11 +68,14 @@ function humanSound(){tone(523.25,.07,'triangle',.06,0,659.25)}function aiSound(
 function saveStats(){localStorage.setItem('chess_stats',JSON.stringify(stats));winsEl.textContent=stats.wins;totalEl.textContent=stats.total}
 function makeBoard(){boardEl.innerHTML='';for(let r=0;r<8;r++)for(let c=0;c<8;c++){const sq=document.createElement('button');sq.className='sq '+((r+c)%2?'dark':'light');sq.dataset.square=coord(r,c);sq.onclick=()=>clickSquare(coord(r,c));boardEl.appendChild(sq)}}
 function coord(r,c){return 'abcdefgh'[c]+(8-r)}
-function newGame(){game=new Chess();selected=null;legal=[];gameOver=false;render();labels()}
+function newGame(){game=new Chess();selected=null;legal=[];pendingPromotion=null;promotionModal.classList.remove('open');gameOver=false;render();labels()}
 function labels(){opponentLabel.textContent=pvp?'Player 2: Black':'AI: Black';modeLabel.textContent=pvp?'PvP':cap(difficulty);pvpBtn.textContent=pvp?'AI Mode':'PvP';if(gameOver)return;statusEl.textContent=pvp?(game.turn()==='w'?'White turn':'Black turn'):(game.turn()==='w'?'Your turn - move white':'AI is thinking...')}
 function render(){const b=game.board();[...boardEl.children].forEach((sq,i)=>{const r=Math.floor(i/8),c=i%8,p=b[r][c],name=p?p.color+p.type:'';sq.textContent=p?pieces[name]:'';sq.classList.toggle('piece-white',!!p&&p.color==='w');sq.classList.toggle('piece-black',!!p&&p.color==='b');const s=sq.dataset.square;sq.classList.toggle('sel',selected===s);sq.classList.toggle('move',legal.some(m=>m.to===s))})}
-function clickSquare(square){if(gameOver||(!pvp&&game.turn()==='b'))return;const piece=game.get(square);if(piece&&piece.color===game.turn()){selected=square;legal=game.moves({square,verbose:true});render();return}if(!selected)return;const move=legal.find(m=>m.to===square);if(!move)return;makeMove({from:selected,to:square,promotion:'q'},true)}
-function makeMove(move,byHuman){const before=game.get(move.to);const result=game.move(move);if(!result)return;selected=null;legal=[];if(result.flags.includes('c'))captureSound();else if(result.flags.includes('k')||result.flags.includes('q'))castleSound();else byHuman?humanSound():aiSound();render();if(checkEnd())return;labels();if(!pvp&&game.turn()==='b')setTimeout(aiMove,220)}
+function clickSquare(square){if(gameOver||pendingPromotion||(!pvp&&game.turn()==='b'))return;const piece=game.get(square);if(piece&&piece.color===game.turn()){selected=square;legal=game.moves({square,verbose:true});render();return}if(!selected)return;const moves=legal.filter(m=>m.to===square);if(!moves.length)return;if(moves.some(isPromotion)){pendingPromotion={from:selected,to:square};updatePromotionChoices();promotionModal.classList.add('open');return}makeMove({from:selected,to:square},true)}
+function isPromotion(m){return m.flags.includes('p')}
+function updatePromotionChoices(){document.querySelectorAll('[data-promotion]').forEach(btn=>{btn.textContent=pieces[game.turn()+btn.dataset.promotion]})}
+function choosePromotion(piece){if(!pendingPromotion)return;const move={...pendingPromotion,promotion:piece};pendingPromotion=null;promotionModal.classList.remove('open');makeMove(move,true)}
+function makeMove(move,byHuman){const result=game.move(move);if(!result)return;selected=null;legal=[];if(result.flags.includes('c')||result.flags.includes('e'))captureSound();else if(result.flags.includes('k')||result.flags.includes('q'))castleSound();else byHuman?humanSound():aiSound();render();if(checkEnd())return;labels();if(!pvp&&game.turn()==='b')setTimeout(aiMove,220)}
 function aiMove(){if(gameOver)return;const moves=game.moves({verbose:true});if(!moves.length)return;let move=difficulty==='easy'?moves[Math.floor(Math.random()*moves.length)]:bestMove(moves);makeMove({from:move.from,to:move.to,promotion:move.promotion||'q'},false)}
 function bestMove(moves){let best=moves[0],score=-1e9;for(const m of moves){game.move({from:m.from,to:m.to,promotion:m.promotion||'q'});let s=evaluate()+moveBonus(m);if(difficulty==='hard')s-=bestWhiteReply()*.5;game.undo();s+=Math.random()*.1;if(s>score){score=s;best=m}}return best}
 function bestWhiteReply(){let best=0;for(const m of game.moves({verbose:true})){game.move({from:m.from,to:m.to,promotion:m.promotion||'q'});best=Math.max(best,-evaluate()+moveBonus(m));game.undo()}return best}
@@ -64,6 +85,7 @@ function checkEnd(){if(!game.game_over())return false;gameOver=true;stats.total+
 function cap(s){return s[0].toUpperCase()+s.slice(1)}
 difficultyButtons.forEach(btn=>btn.onclick=()=>{difficulty=btn.dataset.difficulty;pvp=false;difficultyButtons.forEach(b=>b.classList.toggle('active',b===btn));newGame()});
 document.getElementById('newGame').onclick=newGame;pvpBtn.onclick=()=>{pvp=!pvp;newGame()};
+document.querySelectorAll('[data-promotion]').forEach(btn=>btn.onclick=()=>choosePromotion(btn.dataset.promotion));
 saveStats();makeBoard();newGame();
 </script>
 <!-- Repo refresh: 2026-07-25 09:30:35 +07 -->
