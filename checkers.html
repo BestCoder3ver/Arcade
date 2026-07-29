@@ -45,8 +45,9 @@
     .swatches{display:flex;gap:7px;flex-wrap:wrap}
     .swatch{width:32px;min-width:32px;height:32px;min-height:32px;border-radius:50%;background:var(--swatch);border:3px solid var(--swatch);padding:0;box-shadow:0 0 0 2px rgba(255,255,255,.5)}
     .swatch.active{background:var(--swatch);border-color:var(--swatch);outline:3px solid var(--swatch);outline-offset:3px;box-shadow:0 0 0 2px rgba(255,255,255,.65)}
-    .swatch.taken{position:relative;background:#ef4444!important;border-color:#ef4444!important;opacity:.9}
+    .swatch.taken{position:relative;opacity:.9}
     .swatch.taken::after{content:'X';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:22px;font-weight:900;text-shadow:0 1px 3px #000}
+    .swatch.taken.whiteTaken::after{color:#111827;text-shadow:none}
     #colorError{min-height:18px;color:#fecaca;font-size:13px;margin:8px 0 0}
     #roomCode{width:100%;min-height:38px;border:1px solid #4b5578;border-radius:7px;background:#111827;color:#f8fafc;padding:9px;font-size:18px;text-align:center;margin:8px 0 12px}
     #onlineStatus{min-height:20px;color:#cdd6ea;font-size:13px;margin-top:10px}
@@ -95,10 +96,10 @@
 <div id="onlineColorModal" role="dialog" aria-modal="true" aria-labelledby="onlineColorTitle">
   <div id="onlineColorPanel">
     <h2 id="onlineColorTitle">Choose Your Color</h2>
-    <p>Pick one color. Colors with a red X are already taken by the other player.</p>
+    <p>Pick one color. Colors with an X are already taken by the other player.</p>
     <div id="onlineColors" class="swatches"></div>
     <div id="onlineColorStatus"></div>
-    <div id="onlineColorActions"><button id="onlineReadyBtn" disabled>Ready</button></div>
+    <div id="onlineColorActions"><button id="onlineReadyBtn" disabled>Done</button></div>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
@@ -131,8 +132,8 @@ function closeColors(){colorModal.classList.remove('open')}
 function applyColors(){if(draftColors.top===draftColors.bottom){colorError.textContent='Top and Bottom cannot be the same color.';return}pieceColors={...draftColors};savePieceColors();updatePlayerPieces();render();labels();closeColors()}
 function makeOnlineColorChoices(){onlineColorsEl.innerHTML='';colorChoices.forEach(color=>{const btn=document.createElement('button');btn.className='swatch';btn.type='button';btn.title=color.name;btn.setAttribute('aria-label',color.name);btn.style.setProperty('--swatch',color.value);btn.onclick=()=>chooseOnlineColor(color.value);onlineColorsEl.appendChild(btn)})}
 function readyToStartOnline(){return !!(onlineColors[RED]&&onlineColors[BLACK]&&onlineReadyState[RED]&&onlineReadyState[BLACK])}
-function onlinePrompt(){const other=onlineSide===RED?BLACK:RED;if(!onlineColors[onlineSide])return 'Choose your color, then press Ready.';if(!onlineColors[other])return onlineReadyState[onlineSide]?'You are ready. Waiting for the other player to choose.':'Press Ready when you are happy with your color.';if(!onlineReadyState[onlineSide])return onlineReadyState[other]?'Other player is ready. Press Ready to start.':'Press Ready to start.';if(!onlineReadyState[other])return 'You are ready. Waiting for the other player.';return 'Both players are ready.'}
-function paintOnlineColors(){const other=onlineSide===RED?BLACK:RED;[...onlineColorsEl.children].forEach((btn,i)=>{const color=colorChoices[i].value,isMine=onlineColors[onlineSide]===color,isTaken=onlineColors[other]===color;btn.classList.toggle('active',isMine);btn.classList.toggle('taken',isTaken);btn.disabled=isTaken});onlineReadyBtn.disabled=!onlineColors[onlineSide];onlineReadyBtn.classList.toggle('ready',!!onlineReadyState[onlineSide]);onlineReadyBtn.textContent=onlineReadyState[onlineSide]?'Ready!':'Ready';onlineColorStatus.textContent=onlinePrompt()}
+function onlinePrompt(){const other=onlineSide===RED?BLACK:RED;if(!onlineColors[onlineSide])return 'Choose your color, then press Done.';if(!onlineColors[other])return onlineReadyState[onlineSide]?'You are done. Waiting for the other player to choose.':'Press Done when you are happy with your color.';if(!onlineReadyState[onlineSide])return onlineReadyState[other]?'Other player is done. Press Done to start.':'Press Done to start.';if(!onlineReadyState[other])return 'You are done. Waiting for the other player.';return 'Both players are done.'}
+function paintOnlineColors(){const other=onlineSide===RED?BLACK:RED;[...onlineColorsEl.children].forEach((btn,i)=>{const color=colorChoices[i].value,isMine=onlineColors[onlineSide]===color,isTaken=onlineColors[other]===color;btn.classList.toggle('active',isMine);btn.classList.toggle('taken',isTaken);btn.classList.toggle('whiteTaken',isTaken&&color==='#f8fafc');btn.disabled=isTaken});onlineReadyBtn.disabled=!onlineColors[onlineSide];onlineReadyBtn.classList.toggle('ready',!!onlineReadyState[onlineSide]);onlineReadyBtn.textContent=onlineReadyState[onlineSide]?'Done!':'Done';onlineColorStatus.textContent=onlinePrompt()}
 function openOnlineColors(){paintOnlineColors();onlineColorModal.classList.add('open')}
 function closeOnlineColors(){onlineColorModal.classList.remove('open')}
 function chooseOnlineColor(color){const other=onlineSide===RED?BLACK:RED;if(onlineColors[other]===color)return;onlineColors[onlineSide]=color;onlineReadyState[onlineSide]=false;paintOnlineColors();applyOnlineColors();maybeStartOnlineGame();sendOnlineState();labels()}
