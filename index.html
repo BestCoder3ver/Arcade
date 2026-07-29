@@ -12,25 +12,32 @@ body{
     background:black;
     color:white;
     font-family:Arial, sans-serif;
+    min-height:100vh;
 }
 
 /* LEFT MENU */
 .sidebar{
-    position:fixed;
-    left:0;
-    top:0;
     width:100%;
-    height:100vh;
+    min-height:100vh;
     background:black;
     padding:20px;
+    padding-bottom:110px;
     box-sizing:border-box;
-    overflow:auto;
     display:flex;
     flex-direction:column;
 }
 
 .sidebar h1{
     margin-top:0;
+    margin-bottom:10px;
+}
+
+.timer-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
     margin-bottom:20px;
 }
 
@@ -141,10 +148,6 @@ button:hover{
 
 /* RESET TIMER BUTTON */
 #resetTimerBtn{
-    position:fixed;
-    top:15px;
-    right:15px;
-    z-index:9999;
     width:auto;
     padding:8px 16px;
     font-size:14px;
@@ -165,21 +168,15 @@ button:hover{
 
 /* Timer display */
 #timerDisplay{
-    position:fixed;
-    top:15px;
-    right:170px;
-    z-index:9999;
     font-size:14px;
     color:#88ff88;
     font-family:monospace;
+    min-height:18px;
 }
 </style>
 </head>
 
 <body>
-
-<div id="timerDisplay"></div>
-<button id="resetTimerBtn">Reset Timer</button>
 
 <div id="passwordOverlay">
     <h1>🔒 Password Required</h1>
@@ -192,6 +189,10 @@ button:hover{
 <div class="sidebar">
 
     <h1>🎮 Arcade Hub</h1>
+    <div class="timer-row">
+        <div id="timerDisplay"></div>
+        <button id="resetTimerBtn">Reset Timer</button>
+    </div>
 
     <div class="games-grid">
     <button onclick="checkAuthThenGo('neondash.html')">
