@@ -6,10 +6,10 @@
   <title>Memory Game</title>
   <style>
     button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;margin:0;background:#2c3e50;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
-    #container{position:relative;text-align:center}
-    #grid{display:grid;grid-template-columns:repeat(4,100px);gap:10px;margin:20px auto;background:#34495e;padding:20px;border-radius:10px}
-    .card{width:100px;height:100px;background:#3498db;border:none;border-radius:8px;cursor:pointer;font-size:40px;display:flex;align-items:center;justify-content:center;transition:0.2s;color:#3498db}
+    html,body{height:100%;margin:0;background:#2c3e50;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;overflow:hidden}
+    #container{position:relative;text-align:center;width:100%;padding:56px 8px 8px}
+    #grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(6px,2vw,10px);width:min(94vw,460px);margin:14px auto;background:#34495e;padding:clamp(8px,3vw,20px);border-radius:10px}
+    .card{aspect-ratio:1;width:100%;background:#3498db;border:none;border-radius:8px;cursor:pointer;font-size:clamp(26px,9vw,40px);display:flex;align-items:center;justify-content:center;transition:0.2s;color:#3498db;min-height:0}
     .card:active{transform:scale(0.95)}
     .card.flipped{background:#2ecc71;color:#fff}
     .card.matched{background:#95a5a6;cursor:default}
@@ -20,6 +20,7 @@
     #bestDisplay{position:fixed;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
     #resetBtn{position:fixed;right:320px;top:12px;padding:8px 16px;font-size:14px;background:#e74c3c;border:none;border-radius:8px;cursor:pointer;z-index:100;color:#fff}
     #resetBtn:hover{background:#c0392b}
+    @media(max-width:560px){#scoreDisplay,#bestDisplay,#resetBtn,#back-btn{position:static;display:inline-block;margin:4px}.card{border-radius:7px}h1{font-size:24px}}
   </style>
 </head>
 <body>

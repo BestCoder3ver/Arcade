@@ -6,8 +6,8 @@
   <title>Flappy Bird — Clone</title>
   <style>
     button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;margin:0;background:#70c5ce;display:flex;align-items:center;justify-content:center}
-    canvas{background:linear-gradient(#70c5ce,#8ee0d6);box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    html,body{height:100%;margin:0;background:#70c5ce;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+    canvas{background:linear-gradient(#70c5ce,#8ee0d6);box-shadow:0 6px 18px rgba(0,0,0,.2);width:min(100vw,480px);height:auto;max-height:100vh;touch-action:none}
     #overlay{position:absolute;color:#fff;font:20px/1.1 system-ui, -apple-system, sans-serif;text-align:center;pointer-events:none}
     .hint{font-size:14px;opacity:.9}
     /* Back button (matches other games) */
@@ -15,6 +15,7 @@
     #back-btn:hover{background:white;color:black}
     /* Best score display */
     #bestDisplay{position:absolute;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90}
+    @media(max-width:560px){#back-btn{right:8px;top:8px;padding:7px 10px;font-size:12px}#bestDisplay{left:8px;right:auto;top:8px;font-size:12px}}
   </style>
 </head>
 <body>
@@ -135,12 +136,13 @@ function update(){ if (!running) return; bird.vy += gravity; bird.y += bird.vy; 
 
 function rectCircleColliding(rx, ry, rw, rh, cx, cy, cr){ const closestX = Math.max(rx, Math.min(cx, rx+rw)); const closestY = Math.max(ry, Math.min(cy, ry+rh)); const dx = cx - closestX; const dy = cy - closestY; return (dx*dx + dy*dy) < cr*cr; }
 
+function placeOverlay(){ const r = canvas.getBoundingClientRect(); overlay.style.left = r.left + 'px'; overlay.style.top = r.top + 'px'; overlay.style.width = r.width + 'px'; }
 function draw(){ ctx.clearRect(0,0,W,H); ctx.fillStyle = '#70c5ce'; ctx.fillRect(0,0,W,H); ctx.fillStyle = '#ded895'; ctx.fillRect(0,H-40,W,40); ctx.fillStyle = '#c8b86a'; ctx.fillRect(0,H-40,W,6);
   for (let p of pipes){ ctx.fillStyle = '#2ecc71'; ctx.fillRect(p.x, 0, p.width, p.top); ctx.fillRect(p.x, p.top + pipeGap, p.width, H - (p.top + pipeGap) - 40); ctx.fillStyle = '#1e8f4a'; ctx.fillRect(p.x - 4, p.top - 8, p.width + 8, 8); ctx.fillRect(p.x - 4, p.top + pipeGap, p.width + 8, 8); }
   ctx.save(); ctx.translate(bird.x, bird.y); ctx.rotate(bird.rot); ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(0,0,bird.rad,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#f4b400'; ctx.beginPath(); ctx.ellipse(-2, 2, 8, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -4, 3, 0, Math.PI*2); ctx.fill(); ctx.restore();
   ctx.fillStyle = '#fff'; ctx.font = '48px system-ui, -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(score, W/2, 80);
-  if (!running && !dead){ overlay.innerHTML = '<div style="font-size:26px;">Click / Tap / Space to start</div><div class="hint">Click to flap. Score by passing pipes.</div>'; overlay.style.left = (canvas.offsetLeft) + 'px'; overlay.style.top = (canvas.offsetTop) + 'px'; overlay.style.width = canvas.width + 'px'; }
-  else if (dead){ overlay.innerHTML = '<div style="font-size:26px;">You Died</div><div class="hint">Score: '+score+' — Best: '+best+'<br>Click / Space to try again</div>'; overlay.style.left = (canvas.offsetLeft) + 'px'; overlay.style.top = (canvas.offsetTop) + 'px'; overlay.style.width = canvas.width + 'px'; }
+  if (!running && !dead){ overlay.innerHTML = '<div style="font-size:26px;">Click / Tap / Space to start</div><div class="hint">Click to flap. Score by passing pipes.</div>'; placeOverlay(); }
+  else if (dead){ overlay.innerHTML = '<div style="font-size:26px;">You Died</div><div class="hint">Score: '+score+' — Best: '+best+'<br>Click / Space to try again</div>'; placeOverlay(); }
   else { overlay.innerHTML = ''; }
 }
 
@@ -152,7 +154,7 @@ window.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDef
 canvas.addEventListener('mousedown', e => { flap(); });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, {passive:false});
 
-overlay.style.position = 'absolute'; overlay.style.pointerEvents = 'none'; overlay.style.color = '#fff'; overlay.style.width = canvas.width + 'px'; overlay.style.left = canvas.offsetLeft + 'px'; overlay.style.top = canvas.offsetTop + 'px'; overlay.innerHTML = '<div style="font-size:26px;">Click / Tap / Space to start</div><div class="hint">Audio unlock occurs on first tap/press.</div>';
+overlay.style.position = 'absolute'; overlay.style.pointerEvents = 'none'; overlay.style.color = '#fff'; overlay.innerHTML = '<div style="font-size:26px;">Click / Tap / Space to start</div><div class="hint">Audio unlock occurs on first tap/press.</div>'; placeOverlay(); window.addEventListener('resize', placeOverlay);
 ['touchstart','mousedown','keydown'].forEach(ev => document.addEventListener(ev, function unlock(){ ensureAudio(); document.removeEventListener(ev, unlock); }, {once:true}));
 
 reset(); loop();
