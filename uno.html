@@ -75,6 +75,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .field{width:100%;height:48px;border-radius:var(--radius);border:1px solid rgba(255,255,255,.16);background:#0b101d;color:var(--text);padding:0 14px;outline:none}
 .field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,207,37,.18)}
+.field-label{display:grid;gap:6px;color:var(--muted);font-size:13px;font-weight:850}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .toggle-row:last-child{border-bottom:0}
 .toggle-row span{color:var(--muted);font-size:13px}
@@ -117,7 +118,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .log div{animation:fadeLine 3.5s ease forwards}
 @keyframes fadeLine{0%{opacity:0;transform:translateY(8px)}15%,85%{opacity:1;transform:none}100%{opacity:.55}}
 .hand-zone{position:relative;min-height:0;background:linear-gradient(180deg,rgba(20,27,44,.92),rgba(7,10,18,.76));border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 -10px 34px rgba(0,0,0,.22)}
-.player-meta{display:grid;grid-template-columns:minmax(96px,1fr) minmax(150px,240px) minmax(96px,1fr);align-items:center;gap:10px}
+.player-meta{display:grid;grid-template-columns:max-content minmax(180px,1fr) max-content;align-items:center;gap:10px}
 .player-meta > :last-child{text-align:right}
 .hand-scroll{position:relative;flex:1;overflow-x:auto;overflow-y:hidden;padding:12px 4px 22px;scrollbar-color:#35405a transparent}
 .hand{position:relative;height:124px;min-width:max-content;display:flex;align-items:flex-end;padding:0 18px}
@@ -143,7 +144,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .discard-pile .card .corner{font-size:18px}
 .game-actions{position:absolute;right:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .uno-btn{background:linear-gradient(135deg,#ffd23f,#ff7a18);color:#16110a}
-.hand-uno-btn{min-height:48px;font-size:20px;font-weight:1000;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 14px 26px rgba(255,122,24,.2)}
+.hand-uno-btn{width:100%;min-height:48px;font-size:20px;font-weight:1000;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 14px 26px rgba(255,122,24,.2)}
 .hand-uno-btn.ready{animation:unoReady .32s ease-in-out infinite alternate;box-shadow:0 0 0 3px rgba(255,207,37,.8),0 0 30px rgba(255,207,37,.55)}
 @keyframes unoReady{to{transform:scale(1.04);filter:brightness(1.12)}}
 .floating-card{position:fixed;z-index:60;pointer-events:none;animation:fly .46s cubic-bezier(.2,.8,.25,1) forwards}
@@ -192,6 +193,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
         <button class="ghost-btn" data-action="online">Online</button>
         <button class="ghost-btn" data-action="settings">Settings</button>
         <button class="ghost-btn" data-action="stats">Stats</button>
+        <button class="ghost-btn" data-action="hub">Back to Hub</button>
       </div>
     </div>
   </section>
@@ -232,7 +234,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
       </div>
       <div class="hand-zone">
         <div class="player-meta">
-          <div><strong>You</strong> <span class="small" id="handCount"></span></div>
+          <div><strong id="playerName">You</strong> <span class="small" id="handCount"></span></div>
           <button class="primary-btn uno-btn hand-uno-btn" id="handUnoBtn" data-action="uno">CALL UNO</button>
           <div class="small" id="unoState">UNO not called</div>
         </div>
@@ -516,7 +518,7 @@ class UnoApp{
     });
   }
   handleAction(action,target){
-    const map={newGame:()=>this.chooseDifficulty(),online:()=>this.showOnline(),settings:()=>this.showSettings(),stats:()=>this.showStats(),leaveGame:()=>this.confirmLeave(),uno:()=>this.humanUno(),draw:()=>this.humanDraw(),pass:()=>this.humanPass()};
+    const map={newGame:()=>this.chooseDifficulty(),online:()=>this.showOnline(),settings:()=>this.showSettings(),stats:()=>this.showStats(),hub:()=>location.href="index.html",leaveGame:()=>this.confirmLeave(),uno:()=>this.humanUno(),draw:()=>this.humanDraw(),pass:()=>this.humanPass()};
     map[action]?.(target);
   }
   screen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active")}
@@ -568,12 +570,13 @@ class UnoApp{
   render(){
     if(!this.engine) return;
     const e=this.engine, me=e.players[0], active=e.currentPlayer;
-    document.getElementById("turnText").textContent=active.isHuman ? "Your turn" : `${active.name}'s turn`;
+    document.getElementById("turnText").textContent=active.isHuman ? `Your turn - ${me.name}` : `${active.name}'s turn`;
     document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:""}`;
     document.getElementById("directionBadge").textContent=e.direction===1?"↻ Clockwise":"↺ Counter";
     document.getElementById("turnDot").style.background=COLOR_CSS[e.activeColor] || "var(--accent)";
     document.getElementById("colorCall").style.background=COLOR_CSS[e.activeColor];
     document.getElementById("drawCount").textContent=`${e.deck.cards.length} in deck`;
+    document.getElementById("playerName").textContent=me.name;
     document.getElementById("handCount").textContent=`${me.hand.length} cards`;
     const unoState=document.getElementById("unoState");
     const unoBtn=document.getElementById("handUnoBtn");
@@ -688,12 +691,14 @@ class UnoApp{
   renderLobby(){
     const slots=[0,1,2,3].map(i=>this.lobby.players[i]);
     this.dialog(`<h2>Online Lobby</h2><p>This is a local lobby scaffold ready for real networking later.</p>
-      <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
+      <label class="field-label">Your username
+        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
+      </label>
       <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button></div>
       <div class="code">${this.lobby.code}</div>
-      <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong>${p?p.name+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
+      <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong ${i===0?"id=\"hostSlotName\"":""}>${p?this.escapeHTML(p.name)+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
       <div class="row"><input class="field" id="roomInput" maxlength="6" placeholder="Room code"><button class="ghost-btn" data-add-human>Add Player</button><button class="chip-btn" data-ready>Ready</button><button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button><button class="ghost-btn" data-close>Back</button></div>`);
-    document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
+    document.getElementById("usernameInput").oninput=e=>{this.setUsername(e.target.value);if(this.lobby?.players[0])this.lobby.players[0].name=this.username;const slot=document.getElementById("hostSlotName");if(slot)slot.textContent=`${this.username} (Host)`};
     document.querySelector("[data-host]").onclick=()=>{this.syncLobbyUsername();this.lobby={code:this.roomCode(),players:[{name:this.username,host:true,ready:true}],host:true};this.renderLobby()};
     document.querySelector("[data-join]").onclick=()=>{this.syncLobbyUsername();const code=document.getElementById("roomInput").value.trim().toUpperCase();if(code){this.lobby.code=code;this.addLobbyPlayer(this.username)}};
     document.querySelector("[data-add-human]").onclick=()=>this.addLobbyPlayer();
