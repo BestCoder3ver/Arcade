@@ -253,6 +253,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 const COLORS = ["red","yellow","green","blue"];
 const COLOR_LABELS = {red:"Red",yellow:"Yellow",green:"Green",blue:"Blue",wild:"Wild"};
 const COLOR_CSS = {red:"var(--red)",yellow:"var(--yellow)",green:"var(--green)",blue:"var(--blue)",wild:"conic-gradient(from 45deg,#ef233c,#ffd23f,#18a558,#1b75ff,#ef233c)"};
+const PLAYER_LIGHTS = ["#ef233c","#1b75ff","#ffd23f","#ff8a1c"];
 const TYPES = {NUMBER:"number",SKIP:"skip",REVERSE:"reverse",DRAW2:"draw2",WILD:"wild",WILD4:"wild4"};
 const SORT_COLOR_ORDER = {red:0,yellow:1,green:2,blue:3,wild:4};
 const SORT_TYPE_ORDER = {wild4:0,wild:1,draw2:2,reverse:3,skip:4,number:5};
@@ -396,7 +397,7 @@ class GameEngine{
       return (this.settings.stackMixedDraw && card.type===TYPES.DRAW2) || (this.settings.stackDraw4 && card.type===TYPES.WILD4) || isSkipReverse;
     }
     if(this.pendingKind===TYPES.DRAW2){
-      const matchingDrawTwo = this.settings.stackDraw2 && card.type===TYPES.DRAW2 && card.color===this.activeColor;
+      const matchingDrawTwo = this.settings.stackDraw2 && card.type===TYPES.DRAW2;
       const drawFour = this.settings.stackMixedDraw && card.type===TYPES.WILD4;
       const matchingDeflect = isSkipReverse && card.color===this.activeColor;
       return matchingDrawTwo || drawFour || matchingDeflect;
@@ -526,7 +527,7 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoDeadline=0;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;
     this.bind();
   }
   bind(){
@@ -581,7 +582,7 @@ class UnoApp{
     if(e.message) this.log(e.message);
     const sound = this.soundForEvent(e);
     if(sound) this.audio.play(sound);
-    if(e.type==="unoChance" && e.player===this.localPlayer()) this.startHumanUnoWindow();
+    if(e.type==="unoChance") this.startUnoWindow(e.player);
     if(e.type==="win") this.win(e.player);
     this.render();
   }
@@ -603,16 +604,21 @@ class UnoApp{
     document.getElementById("turnText").textContent=e.current===meIndex ? `Your turn, ${me.name}` : `${active.name}'s turn`;
     document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:this.drawPlayCardId?" · play drawn card now":""}`;
     document.getElementById("directionBadge").textContent=e.direction===1?"↻ Clockwise":"↺ Counter";
-    document.getElementById("turnDot").style.background=COLOR_CSS[e.activeColor] || "var(--accent)";
+    const turnDot=document.getElementById("turnDot");
+    turnDot.style.background=PLAYER_LIGHTS[e.current] || "var(--accent)";
+    turnDot.style.boxShadow=`0 0 18px ${PLAYER_LIGHTS[e.current] || "var(--accent)"}`;
     document.getElementById("colorCall").style.background=COLOR_CSS[e.activeColor];
     document.getElementById("drawCount").textContent=`${e.deck.cards.length} in deck`;
     document.getElementById("playerName").textContent=me.name;
     document.getElementById("handCount").textContent=`${me.hand.length} cards`;
+    this.ensureUnoChallengeWindow();
     const unoState=document.getElementById("unoState");
     const unoBtn=document.getElementById("handUnoBtn");
-    unoState.textContent=me.calledUno ? "UNO called" : "UNO not called";
-    unoBtn.classList.toggle("ready",me.hand.length===1 && !me.calledUno);
-    unoBtn.disabled=me.hand.length!==1 || me.calledUno;
+    const catchable=this.catchableOpponent();
+    const canCallSelf=me.hand.length===1 && !me.calledUno && this.unoCatchableId!==me.id;
+    unoState.textContent=canCallSelf ? "Call UNO now" : me.calledUno ? "UNO called" : this.unoCatchableId===me.id ? "UNO missed" : catchable ? `Catch ${catchable.name}` : "UNO not called";
+    unoBtn.classList.toggle("ready",canCallSelf || !!catchable);
+    unoBtn.disabled=!canCallSelf && !catchable;
     document.getElementById("opponents").innerHTML=e.players.map((p,i)=>i===meIndex?"":this.opponentHTML(p,i,e.current===i)).join("");
     document.getElementById("discardPile").innerHTML=this.cardHTML(e.topCard,false);
     this.renderHand();
@@ -677,7 +683,12 @@ class UnoApp{
   humanPass(){if(!this.engine || this.engine.current!==this.localPlayerIndex())return;this.engine.pass();this.afterHumanMove()}
   humanUno(){
     if(!this.engine) return;
-    if(this.engine.callUno(this.localPlayer())){this.clearHumanUnoWindow();this.syncGameState();}
+    const catchable=this.catchableOpponent();
+    if(catchable){
+      this.challengeUno(catchable);
+      return;
+    }
+    if(this.engine.callUno(this.localPlayer())){this.clearUnoWindow(this.localPlayer().id);this.syncGameState();}
     this.render();
   }
   afterHumanMove(){this.syncGameState();this.render();this.scheduleAI()}
@@ -702,29 +713,52 @@ class UnoApp{
       this.scheduleAI();
     }
   }
-  startHumanUnoWindow(){
-    this.clearHumanUnoWindow();
+  startUnoWindow(player){
+    if(!player || player.calledUno || player.hand.length!==1 || this.unoCatchableId===player.id) return;
+    this.clearUnoWindow();
+    this.unoTimerPlayerId=player.id;
     this.unoDeadline=Date.now()+1000;
-    this.unoTimer=setTimeout(()=>this.applyHumanUnoPenalty(),1000);
+    this.unoTimer=setTimeout(()=>this.markUnoCatchable(player.id),1000);
   }
-  clearHumanUnoWindow(){
+  clearUnoWindow(playerId=null){
+    if(playerId && this.unoTimerPlayerId!==playerId && this.unoCatchableId!==playerId) return;
     clearTimeout(this.unoTimer);
     this.unoTimer=null;
+    this.unoTimerPlayerId=null;
     this.unoDeadline=0;
+    if(!playerId || this.unoCatchableId===playerId) this.unoCatchableId=null;
   }
-  applyHumanUnoPenalty(){
+  markUnoCatchable(playerId){
     if(!this.engine) return;
-    const me=this.localPlayer();
-    if(me.hand.length===1 && !me.calledUno && !this.engine.winner){
-      this.engine.drawTo(me,2);
-      me.calledUno=true;
-      this.log("You missed UNO and drew 2");
-      this.audio.play("penalty");
-      this.syncGameState();
-      this.render();
-    }
-    this.clearHumanUnoWindow();
+    const player=this.engine.players.find(p=>p.id===playerId);
+    clearTimeout(this.unoTimer);
+    this.unoTimer=null;
+    this.unoTimerPlayerId=null;
+    this.unoDeadline=0;
+    if(player?.hand.length===1 && !player.calledUno && !this.engine.winner) this.unoCatchableId=player.id;
+    this.syncGameState();
+    this.render();
     this.scheduleAI();
+  }
+  ensureUnoChallengeWindow(){
+    if(!this.engine || this.engine.winner || this.unoTimer || this.unoCatchableId) return;
+    const player=this.engine.players.find(p=>p.hand.length===1 && !p.calledUno);
+    if(player) this.startUnoWindow(player);
+  }
+  catchableOpponent(){
+    if(!this.engine || !this.unoCatchableId || this.unoCatchableId===this.localPlayer()?.id) return null;
+    const player=this.engine.players.find(p=>p.id===this.unoCatchableId);
+    return player?.hand.length===1 && !player.calledUno ? player : null;
+  }
+  challengeUno(player){
+    if(!player || player.id===this.localPlayer()?.id) return;
+    this.engine.drawTo(player,2);
+    player.calledUno=true;
+    this.clearUnoWindow(player.id);
+    this.log(`${player.name} missed UNO and drew 2`);
+    this.audio.play("penalty");
+    this.syncGameState();
+    this.render();
   }
   scheduleAI(){
     clearTimeout(this.aiTimer);
@@ -789,9 +823,10 @@ class UnoApp{
   promptJoinRoom(){
     this.syncLobbyUsername();
     this.dialog(`<h2>Join Room</h2><p>Paste the room code from the host.</p>
-      <input class="field" id="joinCodeInput" maxlength="6" placeholder="Room code">
+      <input class="field" id="joinCodeInput" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="Room code">
       <div class="row" style="margin-top:14px"><button class="primary-btn" data-confirm-join>Join Room</button><button class="ghost-btn" data-back-online>Back</button></div>`);
     document.getElementById("joinCodeInput").focus();
+    document.getElementById("joinCodeInput").oninput=e=>e.target.value=e.target.value.replace(/\D/g,"").slice(0,3);
     document.getElementById("joinCodeInput").onkeydown=e=>{if(e.key==="Enter")this.joinRoom(e.target.value)};
     document.querySelector("[data-confirm-join]").onclick=()=>this.joinRoom(document.getElementById("joinCodeInput").value);
     document.querySelector("[data-back-online]").onclick=()=>this.renderOnlineHome();
@@ -845,7 +880,7 @@ class UnoApp{
       players:e.players.map(p=>({id:p.id,name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:p.host,hand:p.hand.map(c=>this.serializeCard(c)),calledUno:p.calledUno,ready:p.ready,stats:p.stats})),
       deck:e.deck.cards.map(c=>this.serializeCard(c)),
       discard:e.discard.map(c=>this.serializeCard(c)),
-      current:e.current,direction:e.direction,activeColor:e.activeColor,pendingDraw:e.pendingDraw,pendingKind:e.pendingKind,lastDrawn:e.lastDrawn?this.serializeCard(e.lastDrawn):null,winnerId:e.winner?.id || null
+      current:e.current,direction:e.direction,activeColor:e.activeColor,pendingDraw:e.pendingDraw,pendingKind:e.pendingKind,lastDrawn:e.lastDrawn?this.serializeCard(e.lastDrawn):null,winnerId:e.winner?.id || null,unoCatchableId:this.unoCatchableId
     };
   }
   hydrateEngine(state){
@@ -863,6 +898,7 @@ class UnoApp{
     engine.current=state.current;engine.direction=state.direction;engine.activeColor=state.activeColor;engine.pendingDraw=state.pendingDraw;engine.pendingKind=state.pendingKind;engine.lastDrawn=state.lastDrawn?this.reviveCard(state.lastDrawn):null;engine.started=true;
     engine.winner=state.winnerId ? engine.players.find(p=>p.id===state.winnerId) : null;
     this.engine=engine;
+    this.unoCatchableId=state.unoCatchableId || null;
     this.suppressSync=false;
   }
   syncGameState(){
@@ -980,7 +1016,7 @@ class UnoApp{
     return id;
   }
   escapeHTML(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
-  roomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+  roomCode(){return String(Math.floor(Math.random()*1000)).padStart(3,"0")}
   cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 }
 
