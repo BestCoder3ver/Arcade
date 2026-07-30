@@ -269,7 +269,7 @@ const COLOR_LABELS = {red:"Red",yellow:"Yellow",green:"Green",blue:"Blue",wild:"
 const COLOR_CSS = {red:"var(--red)",yellow:"var(--yellow)",green:"var(--green)",blue:"var(--blue)",wild:"conic-gradient(from 45deg,#ef233c,#ffd23f,#18a558,#1b75ff,#ef233c)"};
 const PLAYER_LIGHTS = ["#ef233c","#1b75ff","#ffd23f","#ff8a1c"];
 const ONLINE_BACKEND = {
-  // Put your Firebase Realtime Database URL here to make room codes work across devices.
+  // Optional default. You can also paste this URL in the Online menu inside the game.
   // Example: "https://your-project-default-rtdb.firebaseio.com"
   firebaseDatabaseURL: ""
 };
@@ -546,7 +546,7 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.backendURL=this.loadBackendURL();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;
     this.bind();
   }
   bind(){
@@ -810,8 +810,12 @@ class UnoApp{
       <label class="field-label">Your username
         <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
       </label>
+      <label class="field-label">Firebase database URL
+        <input class="field" id="backendInput" placeholder="https://your-project-default-rtdb.firebaseio.com" value="${this.escapeHTML(this.backendURL)}">
+      </label>
       <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button><button class="ghost-btn" data-close>Back</button></div>`);
     document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
+    document.getElementById("backendInput").oninput=e=>this.setBackendURL(e.target.value);
     document.querySelector("[data-host]").onclick=()=>this.hostRoom();
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
@@ -867,6 +871,8 @@ class UnoApp{
   syncLobbyUsername(){
     const input=document.getElementById("usernameInput");
     if(input && input.value !== undefined) this.setUsername(input.value);
+    const backend=document.getElementById("backendInput");
+    if(backend && backend.value !== undefined) this.setBackendURL(backend.value);
     const me=this.currentLobbyPlayer();
     if(me) me.name=this.username;
   }
@@ -874,6 +880,10 @@ class UnoApp{
     const clean=(value || "").trim().slice(0,18) || "Player 1";
     this.username=clean;
     localStorage.setItem("unoUsername",clean);
+  }
+  setBackendURL(value){
+    this.backendURL=(value || "").trim();
+    localStorage.setItem("unoBackendURL",this.backendURL);
   }
   currentLobbyPlayer(){return this.lobby?.players.find(p=>p.id===this.clientId)}
   updateLobbyPlayer(fields){
@@ -910,8 +920,9 @@ class UnoApp{
     try{return JSON.parse(localStorage.getItem(`unoRoom_${code}`)||"null")}catch{return null}
   }
   roomPayload(){return {code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,version:this.lobby.version}}
-  cloudEnabled(){return /^https:\/\/.+(?:firebaseio\.com|firebasedatabase\.app)\/?$/.test((ONLINE_BACKEND.firebaseDatabaseURL || "").trim())}
-  roomURL(code){return `${ONLINE_BACKEND.firebaseDatabaseURL.replace(/\/$/,"")}/unoRooms/${code}.json`}
+  cloudURL(){return (this.backendURL || ONLINE_BACKEND.firebaseDatabaseURL || "").trim()}
+  cloudEnabled(){return /^https:\/\/.+(?:firebaseio\.com|firebasedatabase\.app)\/?$/.test(this.cloudURL())}
+  roomURL(code){return `${this.cloudURL().replace(/\/$/,"")}/unoRooms/${code}.json`}
   serializeCard(card){return {id:card.id,color:card.color,type:card.type,value:card.value}}
   reviveCard(card){return new Card(card.color,card.type,card.value,card.id)}
   serializeEngine(){
@@ -1051,6 +1062,7 @@ class UnoApp{
   loadStats(){return {games:0,wins:0,cardsPlayed:0,winRate:0,...JSON.parse(localStorage.getItem("unoStats")||"{}")}}
   saveStats(){localStorage.setItem("unoStats",JSON.stringify(this.stats))}
   loadUsername(){return (localStorage.getItem("unoUsername") || "Player 1").slice(0,18)}
+  loadBackendURL(){return (localStorage.getItem("unoBackendURL") || ONLINE_BACKEND.firebaseDatabaseURL || "").trim()}
   loadClientId(){
     let id=sessionStorage.getItem("unoClientId");
     if(!id){id=uid();sessionStorage.setItem("unoClientId",id)}
