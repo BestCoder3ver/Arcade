@@ -268,6 +268,11 @@ const COLORS = ["red","yellow","green","blue"];
 const COLOR_LABELS = {red:"Red",yellow:"Yellow",green:"Green",blue:"Blue",wild:"Wild"};
 const COLOR_CSS = {red:"var(--red)",yellow:"var(--yellow)",green:"var(--green)",blue:"var(--blue)",wild:"conic-gradient(from 45deg,#ef233c,#ffd23f,#18a558,#1b75ff,#ef233c)"};
 const PLAYER_LIGHTS = ["#ef233c","#1b75ff","#ffd23f","#ff8a1c"];
+const ONLINE_BACKEND = {
+  // Put your Firebase Realtime Database URL here to make room codes work across devices.
+  // Example: "https://your-project-default-rtdb.firebaseio.com"
+  firebaseDatabaseURL: ""
+};
 const TYPES = {NUMBER:"number",SKIP:"skip",REVERSE:"reverse",DRAW2:"draw2",WILD:"wild",WILD4:"wild4"};
 const SORT_COLOR_ORDER = {red:0,yellow:1,green:2,blue:3,wild:4};
 const SORT_TYPE_ORDER = {wild4:0,wild:1,draw2:2,reverse:3,skip:4,number:5};
@@ -801,7 +806,7 @@ class UnoApp{
     this.renderOnlineHome();
   }
   renderOnlineHome(){
-    this.dialog(`<h2>Online Lobby</h2><p>Host a room, tell your friends the code, or join with a code.</p>
+    this.dialog(`<h2>Online Lobby</h2><p>${this.cloudEnabled()?"Cloud rooms are enabled. Anyone with your site link and code can join.":"Cloud rooms are not configured yet. This only works between tabs on this device."}</p>
       <label class="field-label">Your username
         <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
       </label>
@@ -828,10 +833,10 @@ class UnoApp{
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
   }
-  hostRoom(){
+  async hostRoom(){
     this.syncLobbyUsername();
-    this.lobby={code:this.roomCode(),players:[{id:this.clientId,name:this.username,host:true,ready:true}],role:"host"};
-    this.saveLobby();
+    this.lobby={code:await this.availableRoomCode(),players:[{id:this.clientId,name:this.username,host:true,ready:true}],role:"host"};
+    await this.saveLobby();
     this.renderLobby();
   }
   promptJoinRoom(){
@@ -845,9 +850,9 @@ class UnoApp{
     document.querySelector("[data-confirm-join]").onclick=()=>this.joinRoom(document.getElementById("joinCodeInput").value);
     document.querySelector("[data-back-online]").onclick=()=>this.renderOnlineHome();
   }
-  joinRoom(code){
-    code=(code || "").trim().toUpperCase();
-    const room=this.loadLobby(code);
+  async joinRoom(code){
+    code=(code || "").trim().replace(/\D/g,"").slice(0,3);
+    const room=await this.loadLobby(code);
     if(!room) return this.toast("Room code not found");
     if(room.players.length>=4 && !room.players.some(p=>p.id===this.clientId)) return this.toast("Room is full");
     this.lobby=room;
@@ -855,7 +860,7 @@ class UnoApp{
     const existing=this.lobby.players.find(p=>p.id===this.clientId);
     if(existing){existing.name=this.username;existing.ready=false}
     else this.lobby.players.push({id:this.clientId,name:this.username,host:false,ready:false});
-    this.saveLobby();
+    await this.saveLobby();
     if(this.lobby.status==="started" && this.lobby.gameState) return this.startSyncedLobbyGame();
     this.renderLobby();
   }
@@ -877,14 +882,36 @@ class UnoApp{
     Object.assign(p,fields);
     this.saveLobby();
   }
-  saveLobby(){
+  async saveLobby(){
     if(!this.lobby?.code) return;
     this.lobby.version=(this.lobby.version || 0)+1;
-    localStorage.setItem(`unoRoom_${this.lobby.code}`,JSON.stringify({code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,version:this.lobby.version}));
+    const room=this.roomPayload();
+    localStorage.setItem(`unoRoom_${this.lobby.code}`,JSON.stringify(room));
+    if(this.cloudEnabled()){
+      try{
+        await fetch(this.roomURL(this.lobby.code),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(room)});
+      }catch{
+        this.toast("Cloud room save failed");
+      }
+    }
   }
-  loadLobby(code){
+  async loadLobby(code){
+    if(this.cloudEnabled()){
+      try{
+        const res=await fetch(this.roomURL(code));
+        if(res.ok){
+          const room=await res.json();
+          if(room) return room;
+        }
+      }catch{
+        this.toast("Cloud room lookup failed");
+      }
+    }
     try{return JSON.parse(localStorage.getItem(`unoRoom_${code}`)||"null")}catch{return null}
   }
+  roomPayload(){return {code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,version:this.lobby.version}}
+  cloudEnabled(){return /^https:\/\/.+(?:firebaseio\.com|firebasedatabase\.app)\/?$/.test((ONLINE_BACKEND.firebaseDatabaseURL || "").trim())}
+  roomURL(code){return `${ONLINE_BACKEND.firebaseDatabaseURL.replace(/\/$/,"")}/unoRooms/${code}.json`}
   serializeCard(card){return {id:card.id,color:card.color,type:card.type,value:card.value}}
   reviveCard(card){return new Card(card.color,card.type,card.value,card.id)}
   serializeEngine(){
@@ -925,9 +952,9 @@ class UnoApp{
     if(!this.lobby?.code || e.key!==`unoRoom_${this.lobby.code}` || !e.newValue) return;
     this.applyLobbyUpdate(JSON.parse(e.newValue));
   }
-  pollLobby(){
+  async pollLobby(){
     if(!this.lobby?.code) return;
-    const room=this.loadLobby(this.lobby.code);
+    const room=await this.loadLobby(this.lobby.code);
     if(room) this.applyLobbyUpdate(room);
   }
   applyLobbyUpdate(room){
@@ -948,7 +975,7 @@ class UnoApp{
     </div>`);
     document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>this.startLobbyGame(b.dataset.fill));
   }
-  startLobbyGame(fill){
+  async startLobbyGame(fill){
     this.syncLobbyUsername();
     const defs=this.lobby.players.map((p,i)=>({id:p.id,name:i===0?this.username:p.name,isHuman:true,host:p.host,difficulty:"medium"}));
     if(fill!=="none") while(defs.length<4) defs.push({id:`ai-${defs.length}-${uid()}`,name:`${this.cap(fill)} AI ${defs.length}`,isHuman:false,difficulty:fill});
@@ -956,7 +983,7 @@ class UnoApp{
     this.lobby.status="started";
     this.lobby.gameDefs=defs;
     this.lobby.gameState=this.serializeEngine();
-    this.saveLobby();
+    await this.saveLobby();
     this.closeDialog();
   }
   startSyncedLobbyGame(){
@@ -1031,6 +1058,13 @@ class UnoApp{
   }
   escapeHTML(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
   roomCode(){return String(Math.floor(Math.random()*1000)).padStart(3,"0")}
+  async availableRoomCode(){
+    for(let i=0;i<40;i++){
+      const code=this.roomCode();
+      if(!await this.loadLobby(code)) return code;
+    }
+    return this.roomCode();
+  }
   cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 }
 
