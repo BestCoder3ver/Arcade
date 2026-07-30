@@ -62,6 +62,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .ghost-btn{min-height:50px;padding:0 18px;background:#1a2235;border:1px solid rgba(255,255,255,.12);font-weight:800}
 .danger-btn{min-height:42px;padding:0 14px;background:#3a1620;border:1px solid rgba(255,82,101,.35);color:#ffbbc3;font-weight:800}
 .chip-btn{min-height:42px;padding:0 14px;background:#1a2235;border:1px solid rgba(255,255,255,.12);font-weight:850}
+.ready-btn{background:linear-gradient(135deg,#146b3a,#38e07b);color:#07130c;border-color:rgba(56,224,123,.7);box-shadow:0 10px 24px rgba(56,224,123,.2)}
 .primary-btn:hover,.ghost-btn:hover,.danger-btn:hover,.chip-btn:hover,.icon-btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
 .primary-btn:disabled,.ghost-btn:disabled,.chip-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .menu-actions{display:grid;gap:12px}
@@ -93,7 +94,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .status-sub{color:var(--muted);font-size:13px;white-space:nowrap}
 .toolbar{display:flex;gap:8px;align-items:center}
 .icon-btn{width:42px;height:42px;background:#1a2235;border:1px solid rgba(255,255,255,.12);font-weight:900}
-.table{position:relative;flex:1;display:grid;grid-template-rows:116px 1fr 184px;gap:8px;min-height:0}
+.table{position:relative;flex:1;display:grid;grid-template-rows:116px minmax(180px,1fr) minmax(260px,34vh);gap:8px;min-height:0}
 .opponents{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr));min-height:0}
 .opponent{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;background:linear-gradient(180deg,rgba(22,29,47,.92),rgba(9,14,26,.86));border:1px solid rgba(255,255,255,.13);border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.22)}
 .opponent::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue));opacity:.58}
@@ -120,9 +121,9 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .hand-zone{position:relative;min-height:0;background:linear-gradient(180deg,rgba(20,27,44,.92),rgba(7,10,18,.76));border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 -10px 34px rgba(0,0,0,.22)}
 .player-meta{display:grid;grid-template-columns:max-content minmax(180px,1fr) max-content;align-items:center;gap:10px}
 .player-meta > :last-child{text-align:right}
-.hand-scroll{position:relative;flex:1;overflow-x:auto;overflow-y:hidden;padding:12px 4px 22px;scrollbar-color:#35405a transparent}
-.hand{position:relative;height:124px;min-width:max-content;display:flex;align-items:flex-end;padding:0 18px}
-.card{width:78px;height:116px;border-radius:12px;border:3px solid #fff;box-shadow:0 13px 22px rgba(0,0,0,.38),inset 0 0 0 2px rgba(0,0,0,.08);position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-left:-23px;cursor:pointer;transform-origin:50% 100%;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+.hand-scroll{position:relative;flex:1;overflow-x:hidden;overflow-y:auto;padding:16px 6px 22px;scrollbar-color:#35405a transparent;overscroll-behavior:contain}
+.hand{position:relative;min-height:136px;display:flex;align-items:flex-start;align-content:flex-start;flex-wrap:wrap;gap:12px;padding:0 18px 22px}
+.card{width:78px;height:116px;border-radius:12px;border:3px solid #fff;box-shadow:0 13px 22px rgba(0,0,0,.38),inset 0 0 0 2px rgba(0,0,0,.08);position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-left:0;cursor:pointer;transform-origin:50% 100%;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
 .card:first-child{margin-left:0}
 .card.playable{box-shadow:0 0 0 3px rgba(255,207,37,.76),0 0 26px rgba(255,207,37,.36),0 18px 28px rgba(0,0,0,.38);filter:saturate(1.1) brightness(1.04)}
 .card.playable::after{content:"";position:absolute;inset:-7px;border-radius:16px;border:1px solid rgba(255,207,37,.55);animation:pulsePlayable 1.2s ease-in-out infinite;pointer-events:none}
@@ -135,9 +136,9 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .card.wild{background:conic-gradient(from 45deg,#ef233c 0 25%,#ffd23f 0 50%,#18a558 0 75%,#1b75ff 0)}
 .card::before{content:"";position:absolute;inset:15px 9px;border-radius:50%;background:rgba(255,255,255,.86);transform:rotate(-18deg)}
 .card.yellow::before{background:rgba(255,255,255,.82)}
-.card-face{position:relative;z-index:1;font-weight:1000;font-size:30px;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.22);color:inherit}
-.card.wild .card-face{color:#fff;text-shadow:0 2px 0 #000;background:rgba(0,0,0,.3);border-radius:999px;padding:4px 8px}
-.corner{position:absolute;z-index:2;font-size:13px;font-weight:1000;color:inherit;text-shadow:0 1px 0 rgba(0,0,0,.24)}
+.card-face{position:relative;z-index:1;font-weight:1000;font-size:30px;text-align:center;text-shadow:0 1px 0 rgba(255,255,255,.3);color:#080a10}
+.card.wild .card-face{color:#080a10;text-shadow:0 1px 0 rgba(255,255,255,.35);background:rgba(255,255,255,.84);border-radius:999px;padding:4px 8px}
+.corner{position:absolute;z-index:2;font-size:13px;font-weight:1000;color:#080a10;text-shadow:0 1px 0 rgba(255,255,255,.28)}
 .corner.top{top:6px;left:8px}.corner.bottom{right:8px;bottom:6px;transform:rotate(180deg)}
 .discard-pile .card{margin:0;cursor:default;transform:rotate(5deg);width:112px;height:162px;border-radius:14px}
 .discard-pile .card .card-face{font-size:42px}
@@ -166,13 +167,13 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
   .game-screen{padding:6px}
   .topbar{height:auto;min-height:54px}.status-sub{display:none}
   .toolbar .ghost-btn{min-height:40px;padding:0 10px;font-size:13px}
-  .table{grid-template-rows:100px 1fr 190px;gap:6px}
+  .table{grid-template-rows:100px minmax(150px,1fr) minmax(260px,38vh);gap:6px}
   .opponents{grid-template-columns:1fr 1fr 1fr;gap:5px}
   .opponent{padding:8px;display:grid;place-items:center;text-align:center}
   .opponent .row{justify-content:center;gap:4px}.avatar{width:32px;height:32px}.mini-card{display:none}
   .center-table{grid-template-columns:1fr}.pile-area{grid-column:1;gap:18px}
   .draw-pile,.discard-pile{width:88px;height:128px}.discard-pile .card{width:88px;height:128px}.discard-pile .card .card-face{font-size:32px}
-  .card{width:64px;height:96px;margin-left:-20px}.card-face{font-size:25px}.hand{height:110px}
+  .card{width:78px;height:116px;margin-left:0}.card:first-child{margin-left:0}.card-face{font-size:30px}.hand{min-height:136px;gap:8px}
   .log{display:none}.game-actions{left:8px;right:8px;bottom:8px}.game-actions button{flex:1}
   .player-meta{grid-template-columns:1fr;gap:7px;text-align:center}.player-meta > :last-child{text-align:center}.hand-uno-btn{width:100%}
   .dialog{padding:16px}.choice-grid{grid-template-columns:1fr}
@@ -341,8 +342,8 @@ class Deck{
 }
 
 class Player{
-  constructor(name,isHuman=false,difficulty="medium",host=false){
-    this.name=name;this.isHuman=isHuman;this.difficulty=difficulty;this.host=host;this.hand=[];this.calledUno=false;this.ready=false;this.stats={drawn:0,played:0};
+  constructor(name,isHuman=false,difficulty="medium",host=false,id=null){
+    this.id=id || uid();this.name=name;this.isHuman=isHuman;this.difficulty=difficulty;this.host=host;this.hand=[];this.calledUno=false;this.ready=false;this.stats={drawn:0,played:0};
   }
   sortHand(){this.hand.sort((a,b)=>a.sortKey-b.sortKey || a.label.localeCompare(b.label))}
 }
@@ -352,7 +353,7 @@ class GameEngine{
     this.settings={...DEFAULT_SETTINGS,...settings};this.onEvent=onEvent;this.players=[];this.deck=null;this.discard=[];this.current=0;this.direction=1;this.activeColor="red";this.pendingDraw=0;this.pendingKind=null;this.winner=null;this.lastDrawn=null;this.awaitingColorFor=null;this.started=false;
   }
   start(playerDefs){
-    this.players=playerDefs.map(p=>new Player(p.name,p.isHuman,p.difficulty,p.host));
+    this.players=playerDefs.map(p=>new Player(p.name,p.isHuman,p.difficulty,p.host,p.id));
     this.deck=new Deck();this.discard=[];this.current=0;this.direction=1;this.pendingDraw=0;this.pendingKind=null;this.winner=null;this.started=true;
     for(let i=0;i<7;i++) for(const p of this.players) this.drawTo(p,1,false);
     let first=this.deck.draw();
@@ -379,14 +380,28 @@ class GameEngine{
   }
   canPlay(card,player=this.currentPlayer){
     if(this.pendingDraw>0){
-      const drawTwoResponse = this.settings.stackDraw2 && card.type===TYPES.DRAW2;
-      const drawFourResponse = this.settings.stackDraw4 && card.type===TYPES.WILD4;
-      const mixedResponse = this.settings.stackMixedDraw && (card.type===TYPES.DRAW2 || card.type===TYPES.WILD4);
-      const actionDeflect = card.color===this.activeColor && (card.type===TYPES.SKIP || card.type===TYPES.REVERSE);
-      return drawTwoResponse || drawFourResponse || mixedResponse || actionDeflect;
+      return this.canAnswerDrawStack(card);
     }
     const top=this.topCard;
-    return card.color==="wild" || card.color===this.activeColor || card.type===top.type || (card.type===TYPES.NUMBER && top.type===TYPES.NUMBER && card.value===top.value);
+    return card.color==="wild" || card.color===this.activeColor || this.sameSymbol(card,top);
+  }
+  sameSymbol(card,top){
+    if(card.type===TYPES.NUMBER || top.type===TYPES.NUMBER) return card.type===TYPES.NUMBER && top.type===TYPES.NUMBER && card.value===top.value;
+    return card.type===top.type;
+  }
+  isPlusCard(card){return card.type===TYPES.DRAW2 || card.type===TYPES.WILD4}
+  canAnswerDrawStack(card){
+    const isSkipReverse = card.type===TYPES.SKIP || card.type===TYPES.REVERSE;
+    if(this.pendingKind===TYPES.WILD4){
+      return (this.settings.stackMixedDraw && card.type===TYPES.DRAW2) || (this.settings.stackDraw4 && card.type===TYPES.WILD4) || isSkipReverse;
+    }
+    if(this.pendingKind===TYPES.DRAW2){
+      const matchingDrawTwo = this.settings.stackDraw2 && card.type===TYPES.DRAW2 && card.color===this.activeColor;
+      const drawFour = this.settings.stackMixedDraw && card.type===TYPES.WILD4;
+      const matchingDeflect = isSkipReverse && card.color===this.activeColor;
+      return matchingDrawTwo || drawFour || matchingDeflect;
+    }
+    return false;
   }
   canJumpIn(card){
     if(!this.settings.jumpIn || this.currentPlayer.isHuman) return false;
@@ -416,7 +431,16 @@ class GameEngine{
       this.advance(this.pendingDraw>0 && this.players.length===2 ? 1 : this.players.length===2 ? 2 : 1);
       return;
     }
-    if(card.type===TYPES.SKIP){this.emit(`${this.players[this.nextIndex()].name} was skipped`,{type:"skip"});this.advance(2);return}
+    if(card.type===TYPES.SKIP){
+      if(this.pendingDraw>0){
+        this.emit(`${this.currentPlayer.name} skipped the draw stack`,{type:"skip"});
+        this.advance(1);
+      }else{
+        this.emit(`${this.players[this.nextIndex()].name} was skipped`,{type:"skip"});
+        this.advance(2);
+      }
+      return;
+    }
     if(card.type===TYPES.DRAW2){
       if(this.settings.stackDraw2 || this.settings.stackMixedDraw){this.pendingDraw+=2;this.pendingKind=TYPES.DRAW2;this.emit(`Draw stack is now +${this.pendingDraw}`,{type:"stack"});this.advance(1)}
       else{const target=this.players[this.nextIndex()];this.drawTo(target,2);this.advance(2)}
@@ -444,7 +468,7 @@ class GameEngine{
   drawForCurrent(){
     const player=this.currentPlayer;
     if(this.pendingDraw>0){
-      const n=this.pendingDraw;this.drawTo(player,n);this.pendingDraw=0;this.pendingKind=null;this.advance(1);return;
+      const n=this.pendingDraw;this.drawTo(player,n);this.pendingDraw=0;this.pendingKind=null;this.advance(1);return {penalty:true,count:n,playable:null};
     }
     let drawn=0, playable=null;
     do{
@@ -454,9 +478,10 @@ class GameEngine{
     }while(this.settings.drawUntilPlayable && !playable && this.deck.cards.length);
     player.sortHand();this.lastDrawn=playable;
     this.emit(`${player.name} drew ${drawn} card${drawn===1?"":"s"}`,{type:"draw",player,count:drawn});
-    if(this.settings.forcePlay && playable && player.isHuman) return;
+    if(playable && player.isHuman) return {penalty:false,count:drawn,playable};
     if(this.settings.forcePlay && playable && !player.isHuman) return this.playCard(this.current,playable.id,this.bestColor(player));
     this.advance(1);
+    return {penalty:false,count:drawn,playable:null};
   }
   pass(){
     if(this.pendingDraw>0) return this.drawForCurrent();
@@ -501,7 +526,7 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.engine=null;this.lobby=null;this.offlineDifficulty="medium";this.selectedCard=null;this.aiTimer=null;this.unoTimer=null;this.unoDeadline=0;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoDeadline=0;
     this.bind();
   }
   bind(){
@@ -516,6 +541,8 @@ class UnoApp{
       if(e.key.toLowerCase()==="d") this.humanDraw();
       if(e.key==="Enter" && this.selectedCard) this.humanPlay(this.selectedCard);
     });
+    window.addEventListener("storage",e=>this.handleLobbyStorage(e));
+    this.lobbyPollTimer=setInterval(()=>this.pollLobby(),500);
   }
   handleAction(action,target){
     const map={newGame:()=>this.chooseDifficulty(),online:()=>this.showOnline(),settings:()=>this.showSettings(),stats:()=>this.showStats(),hub:()=>location.href="index.html",leaveGame:()=>this.confirmLeave(),uno:()=>this.humanUno(),draw:()=>this.humanDraw(),pass:()=>this.humanPass()};
@@ -539,19 +566,22 @@ class UnoApp{
     document.querySelector("[data-back]").onclick=()=>this.chooseDifficulty();
   }
   startOffline(aiCount){
-    const players=[{name:"You",isHuman:true,host:true}];
-    for(let i=1;i<=aiCount;i++) players.push({name:`AI ${i}`,isHuman:false,difficulty:this.offlineDifficulty});
-    this.startGame(players);this.closeDialog();
+    const players=[{id:this.clientId,name:"You",isHuman:true,host:true}];
+    for(let i=1;i<=aiCount;i++) players.push({id:`ai-${i}-${uid()}`,name:`AI ${i}`,isHuman:false,difficulty:this.offlineDifficulty});
+    this.startGame(players,false);this.closeDialog();
   }
-  startGame(players){
+  startGame(players,synced=false){
+    this.syncedGame=synced;
     this.engine=new GameEngine(this.settings,e=>this.onEvent(e));
     this.engine.start(players);this.screen("gameScreen");this.render();this.scheduleAI();
   }
+  localPlayerIndex(){return Math.max(0,this.engine?.players.findIndex(p=>p.id===this.clientId) ?? 0)}
+  localPlayer(){return this.engine?.players[this.localPlayerIndex()]}
   onEvent(e){
     if(e.message) this.log(e.message);
     const sound = this.soundForEvent(e);
     if(sound) this.audio.play(sound);
-    if(e.type==="unoChance" && e.player===this.engine?.players[0]) this.startHumanUnoWindow();
+    if(e.type==="unoChance" && e.player===this.localPlayer()) this.startHumanUnoWindow();
     if(e.type==="win") this.win(e.player);
     this.render();
   }
@@ -569,9 +599,9 @@ class UnoApp{
   }
   render(){
     if(!this.engine) return;
-    const e=this.engine, me=e.players[0], active=e.currentPlayer;
-    document.getElementById("turnText").textContent=active.isHuman ? `Your turn - ${me.name}` : `${active.name}'s turn`;
-    document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:""}`;
+    const e=this.engine, meIndex=this.localPlayerIndex(), me=e.players[meIndex], active=e.currentPlayer;
+    document.getElementById("turnText").textContent=e.current===meIndex ? `Your turn, ${me.name}` : `${active.name}'s turn`;
+    document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:this.drawPlayCardId?" · play drawn card now":""}`;
     document.getElementById("directionBadge").textContent=e.direction===1?"↻ Clockwise":"↺ Counter";
     document.getElementById("turnDot").style.background=COLOR_CSS[e.activeColor] || "var(--accent)";
     document.getElementById("colorCall").style.background=COLOR_CSS[e.activeColor];
@@ -583,19 +613,19 @@ class UnoApp{
     unoState.textContent=me.calledUno ? "UNO called" : "UNO not called";
     unoBtn.classList.toggle("ready",me.hand.length===1 && !me.calledUno);
     unoBtn.disabled=me.hand.length!==1 || me.calledUno;
-    document.getElementById("opponents").innerHTML=e.players.slice(1).map((p,i)=>this.opponentHTML(p,i+1,e.current===i+1)).join("");
+    document.getElementById("opponents").innerHTML=e.players.map((p,i)=>i===meIndex?"":this.opponentHTML(p,i,e.current===i)).join("");
     document.getElementById("discardPile").innerHTML=this.cardHTML(e.topCard,false);
     this.renderHand();
     const drawBtn=document.getElementById("drawBtn");
-    drawBtn.disabled=!active.isHuman;
+    drawBtn.disabled=e.current!==meIndex;
     drawBtn.textContent=e.pendingDraw ? `Draw +${e.pendingDraw}` : "Draw";
   }
   opponentHTML(p,index,active){
     return `<div class="opponent ${active?"active":""}"><div class="row"><div class="avatar">P${index+1}</div><div><div class="opp-name">${p.name}</div><div class="small">${p.calledUno?"UNO · ":""}${p.hand.length} cards</div></div></div><div class="mini-stack"><div class="mini-card"></div><strong>${p.hand.length}</strong></div></div>`;
   }
   renderHand(){
-    const hand=document.getElementById("playerHand"), e=this.engine, me=e.players[0], humanTurn=e.current===0;
-    hand.innerHTML=me.hand.map(c=>this.cardHTML(c,(humanTurn && e.canPlay(c,me)) || e.canJumpIn(c),this.selectedCard===c.id)).join("");
+    const hand=document.getElementById("playerHand"), e=this.engine, meIndex=this.localPlayerIndex(), me=e.players[meIndex], humanTurn=e.current===meIndex;
+    hand.innerHTML=me.hand.map(c=>this.cardHTML(c,(humanTurn && this.canHumanPlayCard(c,me)) || e.canJumpIn(c),this.selectedCard===c.id)).join("");
     hand.querySelectorAll(".card").forEach(el=>el.onclick=()=>this.cardClick(el.dataset.id));
   }
   cardHTML(card,playable=false,selected=false){
@@ -607,38 +637,71 @@ class UnoApp{
   }
   cardClick(id){
     if(!this.engine) return;
-    const card=this.engine.players[0].hand.find(c=>c.id===id);
-    if(this.engine.current!==0){
+    const meIndex=this.localPlayerIndex(), me=this.engine.players[meIndex];
+    const card=me.hand.find(c=>c.id===id);
+    if(this.engine.current!==meIndex){
       if(card && this.engine.canJumpIn(card)){
-        this.engine.current=0;
+        this.engine.current=meIndex;
         this.toast("Jump In");
         return this.humanPlay(id);
       }
       return;
     }
-    if(!card || !this.engine.canPlay(card,this.engine.players[0])) return this.toast("That card does not match");
+    if(!card || !this.canHumanPlayCard(card,me)) return this.toast(this.drawPlayCardId ? "Play the drawn card or wait" : "That card does not match");
     this.humanPlay(id);
   }
+  canHumanPlayCard(card,me){
+    if(this.drawPlayCardId) return card.id===this.drawPlayCardId && this.engine.canPlay(card,me);
+    return this.engine.canPlay(card,me);
+  }
   humanPlay(id){
-    const card=this.engine.players[0].hand.find(c=>c.id===id);
+    const card=this.localPlayer().hand.find(c=>c.id===id);
     if(!card) return;
     if(card.color==="wild") return this.chooseColor(color=>this.finishHumanPlay(id,color));
     this.finishHumanPlay(id,null);
   }
   finishHumanPlay(id,color){
+    this.clearDrawPlayWindow();
     this.animateCard(id);this.selectedCard=null;
-    const result=this.engine.playCard(0,id,color);
+    const result=this.engine.playCard(this.localPlayerIndex(),id,color);
     if(!result.ok) this.toast(result.reason);
     this.afterHumanMove();
   }
-  humanDraw(){if(this.engine?.current!==0)return;this.engine.drawForCurrent();this.afterHumanMove()}
-  humanPass(){if(this.engine?.current!==0)return;this.engine.pass();this.afterHumanMove()}
+  humanDraw(){
+    if(!this.engine || this.engine.current!==this.localPlayerIndex())return;
+    this.clearDrawPlayWindow();
+    const result=this.engine.drawForCurrent();
+    if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id);
+    this.afterHumanMove();
+  }
+  humanPass(){if(!this.engine || this.engine.current!==this.localPlayerIndex())return;this.engine.pass();this.afterHumanMove()}
   humanUno(){
     if(!this.engine) return;
-    if(this.engine.callUno(this.engine.players[0])) this.clearHumanUnoWindow();
+    if(this.engine.callUno(this.localPlayer())){this.clearHumanUnoWindow();this.syncGameState();}
     this.render();
   }
-  afterHumanMove(){this.render();this.scheduleAI()}
+  afterHumanMove(){this.syncGameState();this.render();this.scheduleAI()}
+  startDrawPlayWindow(cardId){
+    this.drawPlayCardId=cardId;
+    clearTimeout(this.drawPlayTimer);
+    this.drawPlayTimer=setTimeout(()=>this.expireDrawPlayWindow(),1500);
+  }
+  clearDrawPlayWindow(){
+    clearTimeout(this.drawPlayTimer);
+    this.drawPlayTimer=null;
+    this.drawPlayCardId=null;
+  }
+  expireDrawPlayWindow(){
+    if(!this.engine || !this.drawPlayCardId) return;
+    this.clearDrawPlayWindow();
+    if(this.engine.current===this.localPlayerIndex()){
+      this.engine.advance(1);
+      this.log("Drawn card window expired");
+      this.syncGameState();
+      this.render();
+      this.scheduleAI();
+    }
+  }
   startHumanUnoWindow(){
     this.clearHumanUnoWindow();
     this.unoDeadline=Date.now()+1000;
@@ -651,12 +714,13 @@ class UnoApp{
   }
   applyHumanUnoPenalty(){
     if(!this.engine) return;
-    const me=this.engine.players[0];
+    const me=this.localPlayer();
     if(me.hand.length===1 && !me.calledUno && !this.engine.winner){
       this.engine.drawTo(me,2);
       me.calledUno=true;
       this.log("You missed UNO and drew 2");
       this.audio.play("penalty");
+      this.syncGameState();
       this.render();
     }
     this.clearHumanUnoWindow();
@@ -664,7 +728,7 @@ class UnoApp{
   }
   scheduleAI(){
     clearTimeout(this.aiTimer);
-    if(!this.engine || this.engine.winner || this.engine.currentPlayer.isHuman) return;
+    if(!this.engine || this.engine.winner || this.engine.currentPlayer.isHuman || (this.syncedGame && this.lobby?.role!=="host")) return;
     const delay=this.unoTimer ? Math.max(1500, this.unoDeadline-Date.now()+80) : 1500;
     this.aiTimer=setTimeout(()=>this.takeAITurn(),delay);
   }
@@ -676,7 +740,7 @@ class UnoApp{
       if(p.hand.length===2 && Math.random()>.18) e.callUno(p);
       e.playCard(e.current,choice.id,choice.color==="wild"?e.bestColor(p):null);
     }else e.drawForCurrent();
-    e.checkUnoPenalty();this.render();this.scheduleAI();
+    e.checkUnoPenalty();this.syncGameState();this.render();this.scheduleAI();
   }
   chooseColor(done){
     this.dialog(`<h2>Choose Color</h2><p>The wild card changes the active color.</p><div class="choice-grid">
@@ -685,38 +749,147 @@ class UnoApp{
     document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{const c=b.dataset.color;this.audio.play("color");this.closeDialog();done(c)});
   }
   showOnline(){
-    this.lobby={code:this.roomCode(),players:[{name:this.username,host:true,ready:true},{name:"Player 2",host:false,ready:false}],host:true};
-    this.renderLobby();
+    this.lobby=null;
+    this.renderOnlineHome();
   }
-  renderLobby(){
-    const slots=[0,1,2,3].map(i=>this.lobby.players[i]);
-    this.dialog(`<h2>Online Lobby</h2><p>This is a local lobby scaffold ready for real networking later.</p>
+  renderOnlineHome(){
+    this.dialog(`<h2>Online Lobby</h2><p>Host a room, tell your friends the code, or join with a code.</p>
       <label class="field-label">Your username
         <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
       </label>
-      <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button></div>
-      <div class="code">${this.lobby.code}</div>
-      <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong ${i===0?"id=\"hostSlotName\"":""}>${p?this.escapeHTML(p.name)+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
-      <div class="row"><input class="field" id="roomInput" maxlength="6" placeholder="Room code"><button class="ghost-btn" data-add-human>Add Player</button><button class="chip-btn" data-ready>Ready</button><button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button><button class="ghost-btn" data-close>Back</button></div>`);
-    document.getElementById("usernameInput").oninput=e=>{this.setUsername(e.target.value);if(this.lobby?.players[0])this.lobby.players[0].name=this.username;const slot=document.getElementById("hostSlotName");if(slot)slot.textContent=`${this.username} (Host)`};
-    document.querySelector("[data-host]").onclick=()=>{this.syncLobbyUsername();this.lobby={code:this.roomCode(),players:[{name:this.username,host:true,ready:true}],host:true};this.renderLobby()};
-    document.querySelector("[data-join]").onclick=()=>{this.syncLobbyUsername();const code=document.getElementById("roomInput").value.trim().toUpperCase();if(code){this.lobby.code=code;this.addLobbyPlayer(this.username)}};
-    document.querySelector("[data-add-human]").onclick=()=>this.addLobbyPlayer();
-    document.querySelector("[data-ready]").onclick=()=>{const p=this.lobby.players.find(x=>!x.host&&!x.ready);if(p)p.ready=true;this.renderLobby()};
-    document.querySelector("[data-start-lobby]").onclick=()=>this.askAIFill();
+      <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button><button class="ghost-btn" data-close>Back</button></div>`);
+    document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
+    document.querySelector("[data-host]").onclick=()=>this.hostRoom();
+    document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
+  }
+  renderLobby(){
+    const slots=[0,1,2,3].map(i=>this.lobby.players[i]);
+    const me=this.currentLobbyPlayer();
+    const isHost=me?.host;
+    this.dialog(`<h2>Online Lobby</h2><p>${isHost?"Tell other players this room code.":"Waiting for the host to start."}</p>
+      <label class="field-label">Your username
+        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
+      </label>
+      <div class="code">${this.lobby.code}</div>
+      <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong>${p?this.escapeHTML(p.name)+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
+      <div class="row">${isHost?`<button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button>`:`<button class="primary-btn ${me?.ready?"ready-btn":""}" data-ready ${me?.ready?"disabled":""}>${me?.ready?"Ready":"Ready"}</button>`}<button class="ghost-btn" data-join>Join Different Room</button><button class="ghost-btn" data-close>Back</button></div>`);
+    document.getElementById("usernameInput").oninput=e=>{this.setUsername(e.target.value);this.updateLobbyPlayer({name:this.username})};
+    document.querySelector("[data-ready]")?.addEventListener("click",()=>{this.updateLobbyPlayer({ready:true});this.renderLobby()});
+    document.querySelector("[data-start-lobby]")?.addEventListener("click",()=>this.askAIFill());
+    document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
+    document.querySelector("[data-close]").onclick=()=>this.closeDialog();
+  }
+  hostRoom(){
+    this.syncLobbyUsername();
+    this.lobby={code:this.roomCode(),players:[{id:this.clientId,name:this.username,host:true,ready:true}],role:"host"};
+    this.saveLobby();
+    this.renderLobby();
+  }
+  promptJoinRoom(){
+    this.syncLobbyUsername();
+    this.dialog(`<h2>Join Room</h2><p>Paste the room code from the host.</p>
+      <input class="field" id="joinCodeInput" maxlength="6" placeholder="Room code">
+      <div class="row" style="margin-top:14px"><button class="primary-btn" data-confirm-join>Join Room</button><button class="ghost-btn" data-back-online>Back</button></div>`);
+    document.getElementById("joinCodeInput").focus();
+    document.getElementById("joinCodeInput").onkeydown=e=>{if(e.key==="Enter")this.joinRoom(e.target.value)};
+    document.querySelector("[data-confirm-join]").onclick=()=>this.joinRoom(document.getElementById("joinCodeInput").value);
+    document.querySelector("[data-back-online]").onclick=()=>this.renderOnlineHome();
+  }
+  joinRoom(code){
+    code=(code || "").trim().toUpperCase();
+    const room=this.loadLobby(code);
+    if(!room) return this.toast("Room code not found");
+    if(room.players.length>=4 && !room.players.some(p=>p.id===this.clientId)) return this.toast("Room is full");
+    this.lobby=room;
+    this.lobby.role="guest";
+    const existing=this.lobby.players.find(p=>p.id===this.clientId);
+    if(existing){existing.name=this.username;existing.ready=false}
+    else this.lobby.players.push({id:this.clientId,name:this.username,host:false,ready:false});
+    this.saveLobby();
+    if(this.lobby.status==="started" && this.lobby.gameState) return this.startSyncedLobbyGame();
+    this.renderLobby();
   }
   syncLobbyUsername(){
     const input=document.getElementById("usernameInput");
-    if(input) this.setUsername(input.value);
-    if(this.lobby?.players[0]) this.lobby.players[0].name=this.username;
+    if(input && input.value !== undefined) this.setUsername(input.value);
+    const me=this.currentLobbyPlayer();
+    if(me) me.name=this.username;
   }
   setUsername(value){
     const clean=(value || "").trim().slice(0,18) || "Player 1";
     this.username=clean;
     localStorage.setItem("unoUsername",clean);
   }
-  addLobbyPlayer(name=null){this.syncLobbyUsername();if(this.lobby.players.length<4)this.lobby.players.push({name:name || `Player ${this.lobby.players.length+1}`,host:false,ready:false});this.renderLobby()}
+  currentLobbyPlayer(){return this.lobby?.players.find(p=>p.id===this.clientId)}
+  updateLobbyPlayer(fields){
+    const p=this.currentLobbyPlayer();
+    if(!p) return;
+    Object.assign(p,fields);
+    this.saveLobby();
+  }
+  saveLobby(){
+    if(!this.lobby?.code) return;
+    this.lobby.version=(this.lobby.version || 0)+1;
+    localStorage.setItem(`unoRoom_${this.lobby.code}`,JSON.stringify({code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,version:this.lobby.version}));
+  }
+  loadLobby(code){
+    try{return JSON.parse(localStorage.getItem(`unoRoom_${code}`)||"null")}catch{return null}
+  }
+  serializeCard(card){return {id:card.id,color:card.color,type:card.type,value:card.value}}
+  reviveCard(card){return new Card(card.color,card.type,card.value,card.id)}
+  serializeEngine(){
+    if(!this.engine) return null;
+    const e=this.engine;
+    return {
+      players:e.players.map(p=>({id:p.id,name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:p.host,hand:p.hand.map(c=>this.serializeCard(c)),calledUno:p.calledUno,ready:p.ready,stats:p.stats})),
+      deck:e.deck.cards.map(c=>this.serializeCard(c)),
+      discard:e.discard.map(c=>this.serializeCard(c)),
+      current:e.current,direction:e.direction,activeColor:e.activeColor,pendingDraw:e.pendingDraw,pendingKind:e.pendingKind,lastDrawn:e.lastDrawn?this.serializeCard(e.lastDrawn):null,winnerId:e.winner?.id || null
+    };
+  }
+  hydrateEngine(state){
+    this.suppressSync=true;
+    this.clearDrawPlayWindow();
+    const engine=new GameEngine(this.settings,e=>this.onEvent(e));
+    engine.players=state.players.map(data=>{
+      const p=new Player(data.name,data.isHuman,data.difficulty,data.host,data.id);
+      p.hand=data.hand.map(c=>this.reviveCard(c));p.calledUno=data.calledUno;p.ready=data.ready;p.stats=data.stats || {drawn:0,played:0};p.sortHand();
+      return p;
+    });
+    engine.deck=Object.create(Deck.prototype);
+    engine.deck.cards=state.deck.map(c=>this.reviveCard(c));
+    engine.discard=state.discard.map(c=>this.reviveCard(c));
+    engine.current=state.current;engine.direction=state.direction;engine.activeColor=state.activeColor;engine.pendingDraw=state.pendingDraw;engine.pendingKind=state.pendingKind;engine.lastDrawn=state.lastDrawn?this.reviveCard(state.lastDrawn):null;engine.started=true;
+    engine.winner=state.winnerId ? engine.players.find(p=>p.id===state.winnerId) : null;
+    this.engine=engine;
+    this.suppressSync=false;
+  }
+  syncGameState(){
+    if(!this.syncedGame || this.suppressSync || !this.lobby?.code || !this.engine) return;
+    this.lobby.status="started";
+    this.lobby.gameState=this.serializeEngine();
+    this.saveLobby();
+  }
+  handleLobbyStorage(e){
+    if(!this.lobby?.code || e.key!==`unoRoom_${this.lobby.code}` || !e.newValue) return;
+    this.applyLobbyUpdate(JSON.parse(e.newValue));
+  }
+  pollLobby(){
+    if(!this.lobby?.code) return;
+    const room=this.loadLobby(this.lobby.code);
+    if(room) this.applyLobbyUpdate(room);
+  }
+  applyLobbyUpdate(room){
+    if(!room || room.version===(this.lobby?.version || 0)) return;
+    const role=this.lobby?.role;
+    this.lobby={...room,role};
+    if(this.lobby.status==="started" && this.lobby.gameState){
+      this.startSyncedLobbyGame();
+      return;
+    }
+    if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+  }
   canStartLobby(){return this.lobby.players.length>0 && this.lobby.players.every(p=>p.host || p.ready)}
   askAIFill(){
     if(!this.canStartLobby()) return this.toast("All connected players must be ready");
@@ -727,9 +900,23 @@ class UnoApp{
   }
   startLobbyGame(fill){
     this.syncLobbyUsername();
-    const defs=this.lobby.players.map((p,i)=>({name:i===0?this.username:p.name,isHuman:i===0,host:p.host,difficulty:"medium"}));
-    if(fill!=="none") while(defs.length<4) defs.push({name:`${this.cap(fill)} AI ${defs.length}`,isHuman:false,difficulty:fill});
-    this.closeDialog();this.startGame(defs);
+    const defs=this.lobby.players.map((p,i)=>({id:p.id,name:i===0?this.username:p.name,isHuman:true,host:p.host,difficulty:"medium"}));
+    if(fill!=="none") while(defs.length<4) defs.push({id:`ai-${defs.length}-${uid()}`,name:`${this.cap(fill)} AI ${defs.length}`,isHuman:false,difficulty:fill});
+    this.startGame(defs,true);
+    this.lobby.status="started";
+    this.lobby.gameDefs=defs;
+    this.lobby.gameState=this.serializeEngine();
+    this.saveLobby();
+    this.closeDialog();
+  }
+  startSyncedLobbyGame(){
+    if(!this.lobby?.gameState) return;
+    this.syncedGame=true;
+    this.hydrateEngine(this.lobby.gameState);
+    this.closeDialog();
+    this.screen("gameScreen");
+    this.render();
+    this.scheduleAI();
   }
   showSettings(){
     this.dialog(`<h2>Settings</h2><p>House rules are saved in this browser.</p><div class="stack">
@@ -754,12 +941,12 @@ class UnoApp{
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
   }
   win(player){
-    this.stats.games++;if(player===this.engine.players[0])this.stats.wins++;
+    this.stats.games++;if(player===this.localPlayer())this.stats.wins++;
     this.stats.cardsPlayed+=this.engine.players.reduce((n,p)=>n+p.stats.played,0);this.stats.winRate=this.stats.games?this.stats.wins/this.stats.games*100:0;this.saveStats();
     this.confetti();
     setTimeout(()=>this.dialog(`<h2>${player.name} Wins</h2><p>The round is complete.</p><div class="row"><button class="primary-btn" data-play-again>Play Again</button><button class="ghost-btn" data-menu>Return to Main Menu</button></div>`),350);
     setTimeout(()=>{
-      document.querySelector("[data-play-again]")?.addEventListener("click",()=>{const defs=this.engine.players.map((p,i)=>({name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:i===0}));this.closeDialog();this.startGame(defs)});
+      document.querySelector("[data-play-again]")?.addEventListener("click",()=>{const defs=this.engine.players.map((p,i)=>({id:p.id,name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:i===0}));this.closeDialog();this.startGame(defs,this.syncedGame);this.syncGameState()});
       document.querySelector("[data-menu]")?.addEventListener("click",()=>{this.closeDialog();this.engine=null;this.screen("mainMenu")});
     },360);
   }
@@ -787,6 +974,11 @@ class UnoApp{
   loadStats(){return {games:0,wins:0,cardsPlayed:0,winRate:0,...JSON.parse(localStorage.getItem("unoStats")||"{}")}}
   saveStats(){localStorage.setItem("unoStats",JSON.stringify(this.stats))}
   loadUsername(){return (localStorage.getItem("unoUsername") || "Player 1").slice(0,18)}
+  loadClientId(){
+    let id=sessionStorage.getItem("unoClientId");
+    if(!id){id=uid();sessionStorage.setItem("unoClientId",id)}
+    return id;
+  }
   escapeHTML(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
   roomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
   cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
