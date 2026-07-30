@@ -25,8 +25,9 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;letter-spacing:0}
+@supports (height:100dvh){html,body,.app{height:100dvh}}
 button,input,select{font:inherit}
-button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button,.card,.draw-pile{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 body::before{
   content:"";
   position:fixed;inset:0;
@@ -48,7 +49,7 @@ body::after{
 .app{position:relative;width:100%;height:100%;overflow:hidden}
 .screen{position:absolute;inset:0;display:none;opacity:0;transform:translateY(14px);transition:opacity .28s ease,transform .28s ease}
 .screen.active{display:flex;opacity:1;transform:translateY(0)}
-.menu-screen{align-items:center;justify-content:center;padding:22px}
+.menu-screen{align-items:center;justify-content:center;padding:22px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .menu-shell{width:min(980px,100%);display:grid;grid-template-columns:1fr 330px;gap:28px;align-items:center}
 .brand{min-width:0}
 .logo{display:inline-flex;align-items:center;justify-content:center;width:132px;height:88px;border-radius:50%;background:linear-gradient(135deg,#ef233c 0 28%,#ffd23f 28% 52%,#18a558 52% 75%,#1b75ff 75%);box-shadow:0 22px 70px rgba(239,35,60,.32);transform:rotate(-11deg);margin-bottom:28px}
@@ -68,7 +69,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .menu-actions{display:grid;gap:12px}
 .dialog-layer{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,10,.62);z-index:30}
 .dialog-layer.active{display:flex}
-.dialog{width:min(560px,100%);padding:20px}
+.dialog{width:min(560px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px}
 .dialog h2{margin:0 0 6px;font-size:28px}
 .dialog p{margin:0 0 16px;color:var(--muted);line-height:1.45}
 .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
@@ -86,7 +87,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .slider::after{content:"";position:absolute;width:24px;height:24px;top:3px;left:3px;background:#fff;border-radius:50%;transition:.18s}
 .switch input:checked + .slider{background:linear-gradient(135deg,#18a558,#1b75ff)}
 .switch input:checked + .slider::after{transform:translateX(22px)}
-.game-screen{flex-direction:column;padding:10px;gap:8px}
+.game-screen{flex-direction:column;padding:calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));gap:8px}
 .topbar{height:58px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:rgba(7,9,17,.72);border:1px solid var(--line);border-radius:var(--radius);backdrop-filter:blur(14px)}
 .status{display:flex;align-items:center;gap:10px;min-width:0}
 .turn-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px var(--accent)}
@@ -121,7 +122,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .hand-zone{position:relative;min-height:0;background:linear-gradient(180deg,rgba(20,27,44,.92),rgba(7,10,18,.76));border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 -10px 34px rgba(0,0,0,.22)}
 .player-meta{display:grid;grid-template-columns:max-content minmax(180px,1fr) max-content;align-items:center;gap:10px}
 .player-meta > :last-child{text-align:right}
-.hand-scroll{position:relative;flex:1;overflow-x:hidden;overflow-y:auto;padding:16px 6px 22px;scrollbar-color:#35405a transparent;overscroll-behavior:contain}
+.hand-scroll{position:relative;flex:1;overflow-x:hidden;overflow-y:auto;padding:16px 6px 22px;scrollbar-color:#35405a transparent;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .hand{position:relative;min-height:136px;display:flex;align-items:flex-start;align-content:flex-start;flex-wrap:wrap;gap:12px;padding:0 18px 22px}
 .card{width:78px;height:116px;border-radius:12px;border:3px solid #fff;box-shadow:0 13px 22px rgba(0,0,0,.38),inset 0 0 0 2px rgba(0,0,0,.08);position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-left:0;cursor:pointer;transform-origin:50% 100%;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
 .card:first-child{margin-left:0}
@@ -164,10 +165,10 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 @media (max-width:760px){
   .menu-shell{grid-template-columns:1fr;gap:18px}
   .brand{text-align:center}.logo{margin-left:auto;margin-right:auto}
-  .game-screen{padding:6px}
-  .topbar{height:auto;min-height:54px}.status-sub{display:none}
+  .game-screen{padding:calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left))}
+  .topbar{height:auto;min-height:54px;align-items:flex-start}.status{flex:1}.status-sub{display:none}.toolbar{flex:0 0 auto}
   .toolbar .ghost-btn{min-height:40px;padding:0 10px;font-size:13px}
-  .table{grid-template-rows:100px minmax(150px,1fr) minmax(260px,38vh);gap:6px}
+  .table{grid-template-rows:96px minmax(128px,1fr) minmax(240px,42vh);gap:6px}
   .opponents{grid-template-columns:1fr 1fr 1fr;gap:5px}
   .opponent{padding:8px;display:grid;place-items:center;text-align:center}
   .opponent .row{justify-content:center;gap:4px}.avatar{width:32px;height:32px}.mini-card{display:none}
@@ -176,7 +177,20 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
   .card{width:78px;height:116px;margin-left:0}.card:first-child{margin-left:0}.card-face{font-size:30px}.hand{min-height:136px;gap:8px}
   .log{display:none}.game-actions{left:8px;right:8px;bottom:8px}.game-actions button{flex:1}
   .player-meta{grid-template-columns:1fr;gap:7px;text-align:center}.player-meta > :last-child{text-align:center}.hand-uno-btn{width:100%}
-  .dialog{padding:16px}.choice-grid{grid-template-columns:1fr}
+  .dialog-layer{align-items:flex-start;padding:12px}.dialog{padding:16px;max-height:calc(100dvh - 24px)}.choice-grid{grid-template-columns:1fr}
+}
+@media (max-height:620px){
+  .logo{width:104px;height:68px;margin-bottom:16px}.logo span{font-size:22px;padding:8px 15px}
+  h1{font-size:clamp(34px,7vw,58px)}.tagline{font-size:15px}
+  .topbar{min-height:46px;padding:6px 8px}.icon-btn{width:38px;height:38px}.danger-btn{min-height:38px}
+  .table{grid-template-rows:76px minmax(104px,1fr) minmax(214px,44vh)}
+  .opponent{padding:6px}.avatar{width:28px;height:28px}.small{font-size:12px}
+  .draw-pile,.discard-pile{width:76px;height:110px}.discard-pile .card{width:76px;height:110px}.discard-pile .card .card-face{font-size:28px}
+  .hand-zone{padding:8px}.hand-uno-btn{min-height:42px;font-size:17px}.hand-scroll{padding-top:10px}
+}
+@media (hover:none){
+  .primary-btn:hover,.ghost-btn:hover,.danger-btn:hover,.chip-btn:hover,.icon-btn:hover,.draw-pile:hover{transform:none;filter:none}
+  .card:hover{transform:none}
 }
 </style>
 </head>
