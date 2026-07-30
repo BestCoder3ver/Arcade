@@ -499,7 +499,7 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.engine=null;this.lobby=null;this.offlineDifficulty="medium";this.selectedCard=null;this.aiTimer=null;this.unoTimer=null;this.unoDeadline=0;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.engine=null;this.lobby=null;this.offlineDifficulty="medium";this.selectedCard=null;this.aiTimer=null;this.unoTimer=null;this.unoDeadline=0;
     this.bind();
   }
   bind(){
@@ -682,24 +682,36 @@ class UnoApp{
     document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{const c=b.dataset.color;this.audio.play("color");this.closeDialog();done(c)});
   }
   showOnline(){
-    this.lobby={code:this.roomCode(),players:[{name:"Player 1",host:true,ready:true},{name:"Player 2",host:false,ready:false}],host:true};
+    this.lobby={code:this.roomCode(),players:[{name:this.username,host:true,ready:true},{name:"Player 2",host:false,ready:false}],host:true};
     this.renderLobby();
   }
   renderLobby(){
     const slots=[0,1,2,3].map(i=>this.lobby.players[i]);
     this.dialog(`<h2>Online Lobby</h2><p>This is a local lobby scaffold ready for real networking later.</p>
+      <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
       <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button></div>
       <div class="code">${this.lobby.code}</div>
       <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong>${p?p.name+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
       <div class="row"><input class="field" id="roomInput" maxlength="6" placeholder="Room code"><button class="ghost-btn" data-add-human>Add Player</button><button class="chip-btn" data-ready>Ready</button><button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button><button class="ghost-btn" data-close>Back</button></div>`);
-    document.querySelector("[data-host]").onclick=()=>{this.lobby={code:this.roomCode(),players:[{name:"Player 1",host:true,ready:true}],host:true};this.renderLobby()};
-    document.querySelector("[data-join]").onclick=()=>{const code=document.getElementById("roomInput").value.trim().toUpperCase();if(code){this.lobby.code=code;this.addLobbyPlayer()}};
+    document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
+    document.querySelector("[data-host]").onclick=()=>{this.syncLobbyUsername();this.lobby={code:this.roomCode(),players:[{name:this.username,host:true,ready:true}],host:true};this.renderLobby()};
+    document.querySelector("[data-join]").onclick=()=>{this.syncLobbyUsername();const code=document.getElementById("roomInput").value.trim().toUpperCase();if(code){this.lobby.code=code;this.addLobbyPlayer(this.username)}};
     document.querySelector("[data-add-human]").onclick=()=>this.addLobbyPlayer();
     document.querySelector("[data-ready]").onclick=()=>{const p=this.lobby.players.find(x=>!x.host&&!x.ready);if(p)p.ready=true;this.renderLobby()};
     document.querySelector("[data-start-lobby]").onclick=()=>this.askAIFill();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
   }
-  addLobbyPlayer(){if(this.lobby.players.length<4)this.lobby.players.push({name:`Player ${this.lobby.players.length+1}`,host:false,ready:false});this.renderLobby()}
+  syncLobbyUsername(){
+    const input=document.getElementById("usernameInput");
+    if(input) this.setUsername(input.value);
+    if(this.lobby?.players[0]) this.lobby.players[0].name=this.username;
+  }
+  setUsername(value){
+    const clean=(value || "").trim().slice(0,18) || "Player 1";
+    this.username=clean;
+    localStorage.setItem("unoUsername",clean);
+  }
+  addLobbyPlayer(name=null){this.syncLobbyUsername();if(this.lobby.players.length<4)this.lobby.players.push({name:name || `Player ${this.lobby.players.length+1}`,host:false,ready:false});this.renderLobby()}
   canStartLobby(){return this.lobby.players.length>0 && this.lobby.players.every(p=>p.host || p.ready)}
   askAIFill(){
     if(!this.canStartLobby()) return this.toast("All connected players must be ready");
@@ -709,7 +721,8 @@ class UnoApp{
     document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>this.startLobbyGame(b.dataset.fill));
   }
   startLobbyGame(fill){
-    const defs=this.lobby.players.map((p,i)=>({name:i===0?"You":p.name,isHuman:i===0,host:p.host,difficulty:"medium"}));
+    this.syncLobbyUsername();
+    const defs=this.lobby.players.map((p,i)=>({name:i===0?this.username:p.name,isHuman:i===0,host:p.host,difficulty:"medium"}));
     if(fill!=="none") while(defs.length<4) defs.push({name:`${this.cap(fill)} AI ${defs.length}`,isHuman:false,difficulty:fill});
     this.closeDialog();this.startGame(defs);
   }
@@ -768,6 +781,8 @@ class UnoApp{
   saveSettings(){localStorage.setItem("unoSettings",JSON.stringify(this.settings));localStorage.setItem("unoSettingsVersion","3")}
   loadStats(){return {games:0,wins:0,cardsPlayed:0,winRate:0,...JSON.parse(localStorage.getItem("unoStats")||"{}")}}
   saveStats(){localStorage.setItem("unoStats",JSON.stringify(this.stats))}
+  loadUsername(){return (localStorage.getItem("unoUsername") || "Player 1").slice(0,18)}
+  escapeHTML(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
   roomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
   cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 }
