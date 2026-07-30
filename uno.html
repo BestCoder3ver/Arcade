@@ -201,7 +201,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
       <div class="brand">
         <div class="logo"><span>UNO</span></div>
         <h1>UNO Arena</h1>
-        <p class="tagline">Fast offline games, a ready lobby mock for future multiplayer, organized hands, smart AI, house rules, sound, and responsive play.</p>
+        <p class="tagline">Fast offline games, live online rooms, organized hands, smart AI, house rules, sound, and responsive play.</p>
       </div>
       <div class="menu-card menu-actions">
         <button class="primary-btn" data-action="newGame">New Game</button>
@@ -261,6 +261,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
   <div class="dialog-layer" id="dialogLayer"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
 <script>
 "use strict";
 
@@ -268,6 +269,7 @@ const COLORS = ["red","yellow","green","blue"];
 const COLOR_LABELS = {red:"Red",yellow:"Yellow",green:"Green",blue:"Blue",wild:"Wild"};
 const COLOR_CSS = {red:"var(--red)",yellow:"var(--yellow)",green:"var(--green)",blue:"var(--blue)",wild:"conic-gradient(from 45deg,#ef233c,#ffd23f,#18a558,#1b75ff,#ef233c)"};
 const PLAYER_LIGHTS = ["#ef233c","#1b75ff","#ffd23f","#ff8a1c"];
+const ONLINE_PREFIX = "arcade-uno-";
 const ONLINE_BACKEND = {
   // Optional default. You can also paste this URL in the Online menu inside the game.
   // Example: "https://your-project-default-rtdb.firebaseio.com"
@@ -546,7 +548,7 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.backendURL=this.loadBackendURL();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.backendURL=this.loadBackendURL();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayPlayerId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;this.peer=null;this.hostConn=null;this.peerConnections=new Map();this.onlineStatus="";this.lastEvent=null;this.seenRemoteEventId=null;this.shownWinnerId=null;
     this.bind();
   }
   bind(){
@@ -592,6 +594,7 @@ class UnoApp{
   }
   startGame(players,synced=false){
     this.syncedGame=synced;
+    this.shownWinnerId=null;
     this.engine=new GameEngine(this.settings,e=>this.onEvent(e));
     this.engine.start(players);this.screen("gameScreen");this.render();this.scheduleAI();
   }
@@ -600,6 +603,7 @@ class UnoApp{
   onEvent(e){
     if(e.message) this.log(e.message);
     const sound = this.soundForEvent(e);
+    this.lastEvent={id:uid(),type:e.type,message:e.message || "",sound,playerId:e.player?.id || null,cardType:e.card?.type || null};
     if(sound) this.audio.play(sound);
     if(e.type==="unoChance") this.startUnoWindow(e.player);
     if(e.type==="win") this.win(e.player);
@@ -610,9 +614,9 @@ class UnoApp{
     if(e.type==="win") return null;
     if(e.type==="card"){
       if(e.card?.type===TYPES.WILD || e.card?.type===TYPES.WILD4) return "wild";
-      return e.player?.isHuman ? "playSelf" : "playOther";
+      return e.player?.id===this.localPlayer()?.id ? "playSelf" : "playOther";
     }
-    if(e.type==="draw") return e.player?.isHuman ? "drawSelf" : "drawOther";
+    if(e.type==="draw") return e.player?.id===this.localPlayer()?.id ? "drawSelf" : "drawOther";
     if(e.type==="unoChance") return "uno";
     if(e.type==="bad") return "bad";
     return e.type;
@@ -666,6 +670,10 @@ class UnoApp{
     const card=me.hand.find(c=>c.id===id);
     if(this.engine.current!==meIndex){
       if(card && this.engine.canJumpIn(card)){
+        if(this.isOnlineGuest()){
+          if(card.color==="wild") return this.chooseColor(color=>this.requestOnlineMove("play",{cardId:id,color,jumpIn:true}));
+          return this.requestOnlineMove("play",{cardId:id,color:null,jumpIn:true});
+        }
         this.engine.current=meIndex;
         this.toast("Jump In");
         return this.humanPlay(id);
@@ -676,12 +684,17 @@ class UnoApp{
     this.humanPlay(id);
   }
   canHumanPlayCard(card,me){
-    if(this.drawPlayCardId) return card.id===this.drawPlayCardId && this.engine.canPlay(card,me);
+    if(this.drawPlayCardId) return me.id===this.drawPlayPlayerId && card.id===this.drawPlayCardId && this.engine.canPlay(card,me);
     return this.engine.canPlay(card,me);
   }
   humanPlay(id){
     const card=this.localPlayer().hand.find(c=>c.id===id);
     if(!card) return;
+    if(this.isOnlineGuest()){
+      if(card.color==="wild") return this.chooseColor(color=>this.requestOnlineMove("play",{cardId:id,color}));
+      this.requestOnlineMove("play",{cardId:id,color:null});
+      return;
+    }
     if(card.color==="wild") return this.chooseColor(color=>this.finishHumanPlay(id,color));
     this.finishHumanPlay(id,null);
   }
@@ -694,9 +707,10 @@ class UnoApp{
   }
   humanDraw(){
     if(!this.engine || this.engine.current!==this.localPlayerIndex())return;
+    if(this.isOnlineGuest()) return this.requestOnlineMove("draw");
     this.clearDrawPlayWindow();
     const result=this.engine.drawForCurrent();
-    if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id);
+    if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id,this.localPlayer().id);
     this.afterHumanMove();
   }
   humanPass(){if(!this.engine || this.engine.current!==this.localPlayerIndex())return;this.engine.pass();this.afterHumanMove()}
@@ -704,15 +718,18 @@ class UnoApp{
     if(!this.engine) return;
     const catchable=this.catchableOpponent();
     if(catchable){
+      if(this.isOnlineGuest()) return this.requestOnlineMove("challengeUno",{targetId:catchable.id});
       this.challengeUno(catchable);
       return;
     }
+    if(this.isOnlineGuest()) return this.requestOnlineMove("uno");
     if(this.engine.callUno(this.localPlayer())){this.clearUnoWindow(this.localPlayer().id);this.syncGameState();}
     this.render();
   }
   afterHumanMove(){this.syncGameState();this.render();this.scheduleAI()}
-  startDrawPlayWindow(cardId){
+  startDrawPlayWindow(cardId,playerId=this.localPlayer()?.id){
     this.drawPlayCardId=cardId;
+    this.drawPlayPlayerId=playerId;
     clearTimeout(this.drawPlayTimer);
     this.drawPlayTimer=setTimeout(()=>this.expireDrawPlayWindow(),1500);
   }
@@ -720,11 +737,13 @@ class UnoApp{
     clearTimeout(this.drawPlayTimer);
     this.drawPlayTimer=null;
     this.drawPlayCardId=null;
+    this.drawPlayPlayerId=null;
   }
   expireDrawPlayWindow(){
     if(!this.engine || !this.drawPlayCardId) return;
+    const playerId=this.drawPlayPlayerId;
     this.clearDrawPlayWindow();
-    if(this.engine.current===this.localPlayerIndex()){
+    if(this.engine.currentPlayer?.id===playerId){
       this.engine.advance(1);
       this.log("Drawn card window expired");
       this.syncGameState();
@@ -802,20 +821,16 @@ class UnoApp{
     document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{const c=b.dataset.color;this.audio.play("color");this.closeDialog();done(c)});
   }
   showOnline(){
-    this.lobby=null;
     this.renderOnlineHome();
   }
   renderOnlineHome(){
-    this.dialog(`<h2>Online Lobby</h2><p>${this.cloudEnabled()?"Cloud rooms are enabled. Anyone with your site link and code can join.":"Cloud rooms are not configured yet. This only works between tabs on this device."}</p>
+    this.dialog(`<h2>Online Lobby</h2><p>Host a live room, tell friends the 3-digit code, then play from the same shared game.</p>
       <label class="field-label">Your username
         <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
       </label>
-      <label class="field-label">Firebase database URL
-        <input class="field" id="backendInput" placeholder="https://your-project-default-rtdb.firebaseio.com" value="${this.escapeHTML(this.backendURL)}">
-      </label>
+      <div class="small">${this.onlineStatus || "Online uses a direct browser connection. Keep the host tab open."}</div>
       <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button><button class="ghost-btn" data-close>Back</button></div>`);
     document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
-    document.getElementById("backendInput").oninput=e=>this.setBackendURL(e.target.value);
     document.querySelector("[data-host]").onclick=()=>this.hostRoom();
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
@@ -830,6 +845,7 @@ class UnoApp{
       </label>
       <div class="code">${this.lobby.code}</div>
       <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong>${p?this.escapeHTML(p.name)+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
+      <div class="small">${this.onlineStatus || (isHost?"Waiting for players.":"Connected to host.")}</div>
       <div class="row">${isHost?`<button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button>`:`<button class="primary-btn ${me?.ready?"ready-btn":""}" data-ready ${me?.ready?"disabled":""}>${me?.ready?"Ready":"Ready"}</button>`}<button class="ghost-btn" data-join>Join Different Room</button><button class="ghost-btn" data-close>Back</button></div>`);
     document.getElementById("usernameInput").oninput=e=>{this.setUsername(e.target.value);this.updateLobbyPlayer({name:this.username})};
     document.querySelector("[data-ready]")?.addEventListener("click",()=>{this.updateLobbyPlayer({ready:true});this.renderLobby()});
@@ -837,10 +853,17 @@ class UnoApp{
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
   }
-  async hostRoom(){
+  hostRoom(){
     this.syncLobbyUsername();
-    this.lobby={code:await this.availableRoomCode(),players:[{id:this.clientId,name:this.username,host:true,ready:true}],role:"host"};
-    await this.saveLobby();
+    if(typeof Peer==="undefined"){this.onlineStatus="Online library could not load.";return this.renderOnlineHome()}
+    this.resetOnlineConnection();
+    const code=this.roomCode();
+    this.lobby={code,players:[{id:this.clientId,name:this.username,host:true,ready:true,connected:true}],role:"host",status:"lobby",version:0};
+    this.onlineStatus="Opening room...";
+    this.peer=new Peer(this.roomPeerId(code));
+    this.peer.on("open",()=>{this.onlineStatus="Room ready. Share this code.";this.renderLobby();this.broadcastLobby()});
+    this.peer.on("connection",conn=>this.bindHostConnection(conn));
+    this.peer.on("error",err=>{this.onlineStatus=err?.type==="unavailable-id"?"That code is busy. Host again for a new code.":"Could not host. Try again.";this.toast(this.onlineStatus);this.renderLobby()});
     this.renderLobby();
   }
   promptJoinRoom(){
@@ -854,33 +877,41 @@ class UnoApp{
     document.querySelector("[data-confirm-join]").onclick=()=>this.joinRoom(document.getElementById("joinCodeInput").value);
     document.querySelector("[data-back-online]").onclick=()=>this.renderOnlineHome();
   }
-  async joinRoom(code){
+  joinRoom(code){
     code=(code || "").trim().replace(/\D/g,"").slice(0,3);
-    const room=await this.loadLobby(code);
-    if(!room) return this.toast("Room code not found");
-    if(room.players.length>=4 && !room.players.some(p=>p.id===this.clientId)) return this.toast("Room is full");
-    this.lobby=room;
-    this.lobby.role="guest";
-    const existing=this.lobby.players.find(p=>p.id===this.clientId);
-    if(existing){existing.name=this.username;existing.ready=false}
-    else this.lobby.players.push({id:this.clientId,name:this.username,host:false,ready:false});
-    await this.saveLobby();
-    if(this.lobby.status==="started" && this.lobby.gameState) return this.startSyncedLobbyGame();
+    if(code.length<1) return this.toast("Enter a room code");
+    if(typeof Peer==="undefined"){this.onlineStatus="Online library could not load.";return this.renderOnlineHome()}
+    this.resetOnlineConnection();
+    this.lobby={code,players:[{id:this.clientId,name:this.username,host:false,ready:false,connected:true}],role:"guest",status:"joining"};
+    this.onlineStatus="Joining room...";
     this.renderLobby();
+    this.peer=new Peer();
+    this.peer.on("open",()=>{
+      const conn=this.peer.connect(this.roomPeerId(code),{reliable:true});
+      this.hostConn=conn;
+      this.bindGuestConnection(conn);
+    });
+    this.peer.on("error",()=>{this.onlineStatus="Could not join. Check the code and try again.";this.toast(this.onlineStatus);this.renderLobby()});
+    setTimeout(()=>{
+      if(this.lobby?.role==="guest" && this.lobby.status==="joining"){
+        this.onlineStatus="Room not found. Make sure the host is on the lobby screen.";
+        this.toast(this.onlineStatus);
+        this.renderLobby();
+      }
+    },5500);
   }
   syncLobbyUsername(){
     const input=document.getElementById("usernameInput");
     if(input && input.value !== undefined) this.setUsername(input.value);
-    const backend=document.getElementById("backendInput");
-    if(backend && backend.value !== undefined) this.setBackendURL(backend.value);
     const me=this.currentLobbyPlayer();
     if(me) me.name=this.username;
   }
   setUsername(value){
-    const clean=(value || "").trim().slice(0,18) || "Player 1";
+    const clean=this.cleanName(value);
     this.username=clean;
     localStorage.setItem("unoUsername",clean);
   }
+  cleanName(value){return (value || "").trim().slice(0,18) || "Player 1"}
   setBackendURL(value){
     this.backendURL=(value || "").trim();
     localStorage.setItem("unoBackendURL",this.backendURL);
@@ -890,7 +921,150 @@ class UnoApp{
     const p=this.currentLobbyPlayer();
     if(!p) return;
     Object.assign(p,fields);
-    this.saveLobby();
+    if(this.lobby.role==="host") this.broadcastLobby();
+    else this.sendToHost({type:"lobbyUpdate",playerId:this.clientId,fields});
+  }
+  resetOnlineConnection(){
+    this.peerConnections.forEach(conn=>conn.close());
+    this.peerConnections.clear();
+    if(this.hostConn) this.hostConn.close();
+    if(this.peer) this.peer.destroy();
+    this.hostConn=null;
+    this.peer=null;
+  }
+  roomPeerId(code){return ONLINE_PREFIX + String(code).trim()}
+  sendToHost(message){
+    if(this.hostConn?.open) this.hostConn.send(message);
+    else this.toast("Not connected to host");
+  }
+  sendToGuests(message){
+    this.peerConnections.forEach(conn=>{if(conn.open) conn.send(message)});
+  }
+  publicLobby(){
+    return {...this.roomPayload(),gameState:this.lobby?.status==="started"?this.lobby.gameState:null};
+  }
+  broadcastLobby(){
+    if(!this.lobby || this.lobby.role!=="host") return;
+    this.lobby.version=(this.lobby.version || 0)+1;
+    this.sendToGuests({type:"lobby",lobby:this.publicLobby()});
+    if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+  }
+  bindHostConnection(conn){
+    conn.on("data",data=>this.handleHostMessage(conn,data));
+    conn.on("close",()=>this.removePeerPlayer(conn._unoPlayerId));
+    conn.on("error",()=>this.removePeerPlayer(conn._unoPlayerId));
+  }
+  handleHostMessage(conn,data){
+    if(!data || !this.lobby || this.lobby.role!=="host") return;
+    if(data.type==="join"){
+      if(this.lobby.status==="started"){conn.send({type:"reject",reason:"Game already started"});conn.close();return}
+      const existing=this.lobby.players.find(p=>p.id===data.player.id);
+      if(!existing && this.lobby.players.length>=4){conn.send({type:"reject",reason:"Room is full"});conn.close();return}
+      const player={id:data.player.id,name:this.cleanName(data.player.name),host:false,ready:false,connected:true};
+      if(existing) Object.assign(existing,player);
+      else this.lobby.players.push(player);
+      conn._unoPlayerId=player.id;
+      this.peerConnections.set(player.id,conn);
+      this.onlineStatus=`${player.name} joined.`;
+      this.broadcastLobby();
+      return;
+    }
+    if(data.type==="lobbyUpdate"){
+      const player=this.lobby.players.find(p=>p.id===data.playerId);
+      if(!player || player.host) return;
+      if(data.fields.name!==undefined) player.name=this.cleanName(data.fields.name);
+      if(data.fields.ready!==undefined) player.ready=!!data.fields.ready;
+      this.broadcastLobby();
+      return;
+    }
+    if(data.type==="move") this.handleOnlineMove(data);
+  }
+  bindGuestConnection(conn){
+    conn.on("open",()=>{
+      conn.send({type:"join",player:{id:this.clientId,name:this.username}});
+      this.onlineStatus="Connected. Waiting for lobby.";
+      this.renderLobby();
+    });
+    conn.on("data",data=>this.handleGuestMessage(data));
+    conn.on("close",()=>{this.onlineStatus="Disconnected from host.";this.toast(this.onlineStatus);this.renderOnlineHome()});
+    conn.on("error",()=>{this.onlineStatus="Connection failed.";this.toast(this.onlineStatus);this.renderLobby()});
+  }
+  handleGuestMessage(data){
+    if(!data) return;
+    if(data.type==="toast"){this.toast(data.message || "Move rejected");return}
+    if(data.type==="reject"){this.onlineStatus=data.reason || "Could not join room";this.toast(this.onlineStatus);this.renderOnlineHome();return}
+    if(data.type==="lobby"){
+      this.lobby={...data.lobby,role:"guest"};
+      this.onlineStatus="Connected to host.";
+      if(this.lobby.status==="started" && this.lobby.gameState) this.startSyncedLobbyGame();
+      else if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+      return;
+    }
+    if(data.type==="gameState") this.applyOnlineGameState(data);
+  }
+  removePeerPlayer(playerId){
+    if(!playerId || !this.lobby || this.lobby.role!=="host" || this.lobby.status==="started") return;
+    this.peerConnections.delete(playerId);
+    const player=this.lobby.players.find(p=>p.id===playerId);
+    if(player) this.onlineStatus=`${player.name} left.`;
+    this.lobby.players=this.lobby.players.filter(p=>p.host || p.id!==playerId);
+    this.broadcastLobby();
+  }
+  isOnlineGuest(){return this.syncedGame && this.lobby?.role==="guest"}
+  isOnlineHost(){return this.syncedGame && this.lobby?.role==="host"}
+  requestOnlineMove(action,fields={}){
+    this.sendToHost({type:"move",action,playerId:this.clientId,...fields});
+  }
+  handleOnlineMove(data){
+    if(!this.isOnlineHost() || !this.engine) return;
+    const player=this.engine.players.find(p=>p.id===data.playerId);
+    const index=this.engine.players.indexOf(player);
+    if(!player) return;
+    if(data.action==="play" && (this.engine.current===index || (data.jumpIn && this.engine.canJumpIn(player.hand.find(c=>c.id===data.cardId))))){
+      if(data.jumpIn && this.engine.current!==index){this.engine.current=index;this.log(`${player.name} jumped in`)}
+      this.clearDrawPlayWindow();
+      const result=this.engine.playCard(index,data.cardId,data.color || null);
+      if(!result.ok) this.sendOne(player.id,{type:"toast",message:result.reason});
+      this.afterHostOnlineMove();
+    }
+    if(data.action==="draw" && this.engine.current===index){
+      this.clearDrawPlayWindow();
+      const result=this.engine.drawForCurrent();
+      if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id,player.id);
+      this.afterHostOnlineMove();
+    }
+    if(data.action==="uno"){
+      if(this.engine.callUno(player)) this.clearUnoWindow(player.id);
+      this.afterHostOnlineMove(false);
+    }
+    if(data.action==="challengeUno"){
+      const target=this.engine.players.find(p=>p.id===data.targetId);
+      if(target && target.id!==player.id) this.challengeUno(target);
+      else this.afterHostOnlineMove(false);
+    }
+  }
+  sendOne(playerId,message){
+    const conn=this.peerConnections.get(playerId);
+    if(conn?.open) conn.send(message);
+  }
+  afterHostOnlineMove(runAI=true){
+    this.syncGameState();
+    this.render();
+    if(runAI) this.scheduleAI();
+  }
+  applyOnlineGameState(data){
+    this.lobby={...data.lobby,role:this.lobby?.role || "guest"};
+    const event=this.lobby.gameState?.lastEvent;
+    this.startSyncedLobbyGame();
+    this.playRemoteEvent(event);
+  }
+  playRemoteEvent(event){
+    if(!event || event.id===this.seenRemoteEventId) return;
+    this.seenRemoteEventId=event.id;
+    let sound=event.sound;
+    if(event.type==="card") sound=event.cardType===TYPES.WILD || event.cardType===TYPES.WILD4 ? "wild" : event.playerId===this.clientId ? "playSelf" : "playOther";
+    if(event.type==="draw") sound=event.playerId===this.clientId ? "drawSelf" : "drawOther";
+    if(sound) this.audio.play(sound);
   }
   async saveLobby(){
     if(!this.lobby?.code) return;
@@ -929,16 +1103,17 @@ class UnoApp{
     if(!this.engine) return null;
     const e=this.engine;
     return {
+      settings:{...e.settings},
       players:e.players.map(p=>({id:p.id,name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:p.host,hand:p.hand.map(c=>this.serializeCard(c)),calledUno:p.calledUno,ready:p.ready,stats:p.stats})),
       deck:e.deck.cards.map(c=>this.serializeCard(c)),
       discard:e.discard.map(c=>this.serializeCard(c)),
-      current:e.current,direction:e.direction,activeColor:e.activeColor,pendingDraw:e.pendingDraw,pendingKind:e.pendingKind,lastDrawn:e.lastDrawn?this.serializeCard(e.lastDrawn):null,winnerId:e.winner?.id || null,unoCatchableId:this.unoCatchableId
+      current:e.current,direction:e.direction,activeColor:e.activeColor,pendingDraw:e.pendingDraw,pendingKind:e.pendingKind,lastDrawn:e.lastDrawn?this.serializeCard(e.lastDrawn):null,winnerId:e.winner?.id || null,unoCatchableId:this.unoCatchableId,drawPlayCardId:this.drawPlayCardId,drawPlayPlayerId:this.drawPlayPlayerId,lastEvent:this.lastEvent
     };
   }
   hydrateEngine(state){
     this.suppressSync=true;
     this.clearDrawPlayWindow();
-    const engine=new GameEngine(this.settings,e=>this.onEvent(e));
+    const engine=new GameEngine(state.settings || this.settings,e=>this.onEvent(e));
     engine.players=state.players.map(data=>{
       const p=new Player(data.name,data.isHuman,data.difficulty,data.host,data.id);
       p.hand=data.hand.map(c=>this.reviveCard(c));p.calledUno=data.calledUno;p.ready=data.ready;p.stats=data.stats || {drawn:0,played:0};p.sortHand();
@@ -951,19 +1126,29 @@ class UnoApp{
     engine.winner=state.winnerId ? engine.players.find(p=>p.id===state.winnerId) : null;
     this.engine=engine;
     this.unoCatchableId=state.unoCatchableId || null;
+    this.drawPlayCardId=state.drawPlayCardId || null;
+    this.drawPlayPlayerId=state.drawPlayPlayerId || null;
     this.suppressSync=false;
   }
   syncGameState(){
     if(!this.syncedGame || this.suppressSync || !this.lobby?.code || !this.engine) return;
     this.lobby.status="started";
     this.lobby.gameState=this.serializeEngine();
+    if(this.lobby.role==="host"){
+      this.lobby.version=(this.lobby.version || 0)+1;
+      this.sendToGuests({type:"gameState",lobby:this.publicLobby()});
+      return;
+    }
+    if(this.lobby.role==="guest") return;
     this.saveLobby();
   }
   handleLobbyStorage(e){
+    if(this.lobby?.role==="host" || this.lobby?.role==="guest") return;
     if(!this.lobby?.code || e.key!==`unoRoom_${this.lobby.code}` || !e.newValue) return;
     this.applyLobbyUpdate(JSON.parse(e.newValue));
   }
   async pollLobby(){
+    if(this.lobby?.role==="host" || this.lobby?.role==="guest") return;
     if(!this.lobby?.code) return;
     const room=await this.loadLobby(this.lobby.code);
     if(room) this.applyLobbyUpdate(room);
@@ -986,7 +1171,7 @@ class UnoApp{
     </div>`);
     document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>this.startLobbyGame(b.dataset.fill));
   }
-  async startLobbyGame(fill){
+  startLobbyGame(fill){
     this.syncLobbyUsername();
     const defs=this.lobby.players.map((p,i)=>({id:p.id,name:i===0?this.username:p.name,isHuman:true,host:p.host,difficulty:"medium"}));
     if(fill!=="none") while(defs.length<4) defs.push({id:`ai-${defs.length}-${uid()}`,name:`${this.cap(fill)} AI ${defs.length}`,isHuman:false,difficulty:fill});
@@ -994,7 +1179,7 @@ class UnoApp{
     this.lobby.status="started";
     this.lobby.gameDefs=defs;
     this.lobby.gameState=this.serializeEngine();
-    await this.saveLobby();
+    this.sendToGuests({type:"gameState",lobby:this.publicLobby()});
     this.closeDialog();
   }
   startSyncedLobbyGame(){
@@ -1004,6 +1189,7 @@ class UnoApp{
     this.closeDialog();
     this.screen("gameScreen");
     this.render();
+    if(this.engine.winner && this.shownWinnerId!==this.engine.winner.id) this.win(this.engine.winner);
     this.scheduleAI();
   }
   showSettings(){
@@ -1029,10 +1215,12 @@ class UnoApp{
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
   }
   win(player){
+    if(this.shownWinnerId===player.id && document.getElementById("dialogLayer").classList.contains("active")) return;
+    this.shownWinnerId=player.id;
     this.stats.games++;if(player===this.localPlayer())this.stats.wins++;
     this.stats.cardsPlayed+=this.engine.players.reduce((n,p)=>n+p.stats.played,0);this.stats.winRate=this.stats.games?this.stats.wins/this.stats.games*100:0;this.saveStats();
     this.confetti();
-    setTimeout(()=>this.dialog(`<h2>${player.name} Wins</h2><p>The round is complete.</p><div class="row"><button class="primary-btn" data-play-again>Play Again</button><button class="ghost-btn" data-menu>Return to Main Menu</button></div>`),350);
+    setTimeout(()=>this.dialog(`<h2>${player.name} Wins</h2><p>The round is complete.</p><div class="row">${this.isOnlineGuest()?"":`<button class="primary-btn" data-play-again>Play Again</button>`}<button class="ghost-btn" data-menu>Return to Main Menu</button></div>`),350);
     setTimeout(()=>{
       document.querySelector("[data-play-again]")?.addEventListener("click",()=>{const defs=this.engine.players.map((p,i)=>({id:p.id,name:p.name,isHuman:p.isHuman,difficulty:p.difficulty,host:i===0}));this.closeDialog();this.startGame(defs,this.syncedGame);this.syncGameState()});
       document.querySelector("[data-menu]")?.addEventListener("click",()=>{this.closeDialog();this.engine=null;this.screen("mainMenu")});
