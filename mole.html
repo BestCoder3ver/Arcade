@@ -6,35 +6,40 @@
   <title>Whack-a-Mole</title>
   <style>
     button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;margin:0;background:#228B22;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;overflow:hidden}
-    #container{text-align:center;width:100%;padding:56px 8px 8px}
-    #grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(7px,2.5vw,10px);width:min(92vw,420px);margin:14px auto;background:#1a6b1a;padding:clamp(10px,3vw,20px);border-radius:10px}
+    html,body{min-height:100%;margin:0;background:#228B22;font-family:Arial,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;overflow:auto}
+    #container{text-align:center;width:100%;max-width:620px;padding:16px 10px;box-sizing:border-box}
+    h1{color:#fff;margin:0 0 10px;font-size:clamp(24px,7vw,36px)}
+    #topbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin:0 auto 10px}
+    #grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(7px,2.5vw,10px);width:min(92vw,58vh,420px);margin:12px auto 0;background:#1a6b1a;padding:clamp(10px,3vw,20px);border-radius:10px;box-sizing:border-box}
     .hole{aspect-ratio:1;width:100%;background:#8b6f47;border:3px solid #654321;border-radius:50%;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
     .hole.active::after{content:'🦡';font-size:clamp(38px,14vw,60px);animation:pop 0.3s ease-out;position:absolute}
     @keyframes pop{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
-    #overlay{color:#fff;font:20px/1.2 Arial;text-align:center;pointer-events:none;position:absolute;width:100%;left:0}
-    #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #overlay{color:#fff;font:20px/1.2 Arial;text-align:center;min-height:62px;margin-top:10px}
+    #back-btn{padding:8px 14px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
     #back-btn:hover{background:white;color:black}
-    #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
-    #bestDisplay{position:fixed;right:120px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
-    #restartBtn{position:fixed;right:320px;top:12px;padding:8px 16px;font-size:14px;background:#27ae60;border:none;border-radius:8px;cursor:pointer;z-index:100;color:#fff}
+    #scoreDisplay,#bestDisplay{padding:7px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#fff;font-size:14px;z-index:90;font-family:monospace}
+    #restartBtn{padding:8px 14px;font-size:14px;background:#27ae60;border:none;border-radius:8px;cursor:pointer;z-index:100;color:#fff}
     #restartBtn:hover{background:#229954}
-    #timerBar{width:min(86vw,300px);height:20px;background:#555;margin:10px auto;border-radius:10px;overflow:hidden}
+    #timerBar{width:min(86vw,300px);height:20px;background:#555;margin:8px auto 10px;border-radius:10px;overflow:hidden}
     #timerFill{height:100%;background:#ff6b6b;width:100%;transition:width 0.1s linear}
-    @media(max-width:560px){#scoreDisplay,#bestDisplay,#restartBtn,#back-btn{position:static;display:inline-block;margin:4px}h1{font-size:24px}}
+    @media(min-width:760px){#back-btn{position:fixed;right:12px;top:12px}}
+    @media(max-width:560px){body{align-items:flex-start}#container{padding-top:12px}#topbar{max-width:360px}#grid{width:min(94vw,52vh)}}
   </style>
 </head>
 <body>
   <div id="container">
-    <h1 style="color:#fff;margin-top:0">🔨 WHACK-A-MOLE 🔨</h1>
+    <h1>🔨 WHACK-A-MOLE 🔨</h1>
+    <div id="topbar">
+      <div id="scoreDisplay">Score: 0</div>
+      <div id="bestDisplay">Best: 0</div>
+      <button id="restartBtn" onclick="init()">Restart</button>
+      <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+    </div>
     <div id="timerBar"><div id="timerFill"></div></div>
     <div id="grid"></div>
     <div id="overlay"></div>
   </div>
-  <div id="scoreDisplay">Score: 0</div>
-  <div id="bestDisplay">Best: 0</div>
-  <button id="restartBtn" onclick="init()">Restart</button>
-  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
 
 <script>
 const grid = document.getElementById('grid');
