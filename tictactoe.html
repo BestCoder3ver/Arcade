@@ -6,29 +6,37 @@
   <title>Tic-Tac-Toe</title>
   <style>
     button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;margin:0;background:#2c3e50;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;overflow:hidden}
-    #container{text-align:center;width:100%;padding:56px 8px 8px}
-    #board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;width:min(92vw,380px);margin:20px auto;background:#34495e;padding:10px;border-radius:10px}
-    .cell{aspect-ratio:1;width:100%;background:#3498db;border:none;font-size:clamp(34px,13vw,58px);font-weight:bold;cursor:pointer;border-radius:8px;color:#fff;transition:0.2s;min-height:0}
+    html,body{min-height:100%;margin:0;background:#2c3e50;font-family:Arial,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;overflow:auto}
+    #container{text-align:center;width:100%;max-width:620px;padding:16px 10px;box-sizing:border-box}
+    h1{color:#ecf0f1;margin:0 0 10px;font-size:clamp(24px,7vw,36px)}
+    #topbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;margin:0 auto 10px}
+    #board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;width:min(92vw,58vh,380px);margin:12px auto;background:#34495e;padding:10px;border-radius:10px;box-sizing:border-box}
+    .cell{aspect-ratio:1;width:100%;background:#3498db;border:none;font-size:clamp(34px,13vw,58px);font-weight:bold;cursor:pointer;border-radius:8px;color:#fff;transition:0.2s;min-height:0;display:flex;align-items:center;justify-content:center}
     .cell:hover{background:#2980b9;transform:scale(0.98)}
     .cell.x{color:#e74c3c}
     .cell.o{color:#f1c40f}
-    #status{color:#ecf0f1;font-size:20px;min-height:30px;margin:20px 0}
-    #button-container{display:flex;gap:10px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+    #status{color:#ecf0f1;font-size:20px;min-height:30px;margin:10px 0}
+    #button-container{display:flex;gap:10px;justify-content:center;margin:12px 0 0;flex-wrap:wrap}
     #button-container button{padding:10px 30px;font-size:16px;color:#fff;border:none;border-radius:8px;cursor:pointer}
     #newgame-btn{background:#27ae60}
     #newgame-btn:hover{background:#229954}
     #newpvp-btn{background:#9b59b6}
     #newpvp-btn:hover{background:#8e44ad}
-    #back-btn{position:fixed;right:12px;top:12px;padding:8px 16px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
+    #back-btn{padding:8px 14px;font-size:14px;background:cyan;border:none;border-radius:8px;cursor:pointer;z-index:100}
     #back-btn:hover{background:white;color:black}
-    #scoreDisplay{position:fixed;left:12px;top:12px;padding:6px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#ecf0f1;font-size:14px;z-index:90;font-family:monospace}
-    @media(max-width:560px){#scoreDisplay,#back-btn{position:static;display:inline-block;margin:4px}h1{font-size:24px}#status{font-size:18px;margin:12px 0}}
+    #scoreDisplay{padding:7px 10px;background:rgba(0,0,0,0.35);border-radius:8px;color:#ecf0f1;font-size:14px;z-index:90;font-family:monospace}
+    @media(min-width:760px){#back-btn{position:fixed;right:12px;top:12px}}
+    @media(max-width:560px){body{align-items:flex-start}#container{padding-top:12px}#topbar{max-width:360px}#board{width:min(94vw,52vh)}#status{font-size:18px;margin:10px 0}}
   </style>
 </head>
 <body>
   <div id="container">
-    <h1 style="color:#ecf0f1;margin-top:0">⭕ TIC-TAC-TOE ❌</h1>
+    <h1>⭕ TIC-TAC-TOE ❌</h1>
+    <div id="topbar">
+      <div id="scoreDisplay">Wins: 0</div>
+      <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
+    </div>
     <div id="board"></div>
     <div id="status">X's turn</div>
     <div id="button-container">
@@ -36,8 +44,6 @@
       <button id="newpvp-btn" onclick="initPvP()">New PvP Game</button>
     </div>
   </div>
-  <div id="scoreDisplay">Wins: 0</div>
-  <button id="back-btn" onclick="location.href='index.html'">Back to Hub</button>
 
 <script>
 const board = document.getElementById('board');
