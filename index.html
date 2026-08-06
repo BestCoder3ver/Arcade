@@ -43,7 +43,7 @@ body{
 
 .games-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit, 150px);
+    grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
     gap:12px;
     flex:1;
     align-content:start;
@@ -172,6 +172,21 @@ button:hover{
     color:#88ff88;
     font-family:monospace;
     min-height:18px;
+}
+
+@media (max-width:480px){
+    .sidebar{
+        padding:14px;
+        padding-bottom:90px;
+    }
+
+    .games-grid{
+        grid-template-columns:1fr;
+    }
+
+    button{
+        width:100%;
+    }
 }
 </style>
 </head>
