@@ -28,6 +28,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 @supports (height:100dvh){html,body,.app{height:100dvh}}
 button,input,select{font:inherit}
 button,.card,.draw-pile{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+input{font-size:16px}
 body::before{
   content:"";
   position:fixed;inset:0;
@@ -95,6 +96,8 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .status-sub{color:var(--muted);font-size:13px;white-space:nowrap}
 .toolbar{display:flex;gap:8px;align-items:center}
 .icon-btn{width:42px;height:42px;background:#1a2235;border:1px solid rgba(255,255,255,.12);font-weight:900}
+.chat-toggle{display:none;width:auto;min-width:42px;padding:0 12px}
+.chat-toggle.active{display:inline-flex;align-items:center;justify-content:center}
 .table{position:relative;flex:1;display:grid;grid-template-rows:116px minmax(180px,1fr) minmax(260px,34vh);gap:8px;min-height:0}
 .opponents{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr));min-height:0}
 .opponent{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;background:linear-gradient(180deg,rgba(22,29,47,.92),rgba(9,14,26,.86));border:1px solid rgba(255,255,255,.13);border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.22)}
@@ -107,6 +110,7 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .mini-card{width:28px;height:40px;border-radius:5px;background:linear-gradient(135deg,#151923 0 35%,#ef233c 35% 50%,#ffd23f 50% 65%,#18a558 65% 80%,#1b75ff 80%);border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 10px rgba(0,0,0,.22)}
 .center-table{position:relative;display:grid;grid-template-columns:1fr minmax(270px,420px) 1fr;align-items:center;min-height:0;background:radial-gradient(ellipse at center,rgba(255,255,255,.08),rgba(255,255,255,.02) 48%,transparent 70%);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);overflow:hidden}
 .center-table::before{content:"";position:absolute;inset:18px;border:1px solid rgba(255,255,255,.08);border-radius:999px;pointer-events:none}
+.turn-panel{position:absolute;left:12px;top:12px;max-width:min(330px,42vw);display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(16,21,34,.9);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 24px rgba(0,0,0,.24);z-index:3}
 .pile-area{grid-column:2;display:flex;align-items:center;justify-content:center;gap:28px}
 .pile-wrap{text-align:center}
 .pile-label{font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:900;margin-top:8px;letter-spacing:.08em}
@@ -118,6 +122,15 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 .direction-badge{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:rgba(16,21,34,.88);border:1px solid var(--line);padding:8px 12px;border-radius:999px;font-weight:950}
 .log{position:absolute;left:12px;bottom:12px;width:min(260px,35vw);max-height:116px;overflow:hidden;color:var(--muted);font-size:13px;line-height:1.35}
 .log div{animation:fadeLine 3.5s ease forwards}
+.chat-feed{display:none;position:absolute;left:12px;top:76px;width:min(360px,calc(100% - 150px));max-height:136px;overflow:hidden;z-index:4;font-size:14px;line-height:1.3}
+.chat-feed.active{display:grid;gap:5px}
+.chat-line{display:grid;grid-template-columns:10px minmax(0,1fr);column-gap:7px;align-items:start;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65)}
+.chat-color{width:10px;height:10px;border-radius:50%;margin-top:4px;box-shadow:0 0 10px currentColor;background:currentColor}
+.chat-text{overflow-wrap:anywhere;word-break:break-word}
+.chat-name{font-weight:950}
+.chat-dialog{display:grid;gap:10px}
+.chat-input-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.keyboard-done{display:none}
 @keyframes fadeLine{0%{opacity:0;transform:translateY(8px)}15%,85%{opacity:1;transform:none}100%{opacity:.55}}
 .hand-zone{position:relative;min-height:0;background:linear-gradient(180deg,rgba(20,27,44,.92),rgba(7,10,18,.76));border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 -10px 34px rgba(0,0,0,.22)}
 .player-meta{display:grid;grid-template-columns:max-content minmax(180px,1fr) max-content;align-items:center;gap:10px}
@@ -173,11 +186,14 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
   .opponent{padding:8px;display:grid;place-items:center;text-align:center}
   .opponent .row{justify-content:center;gap:4px}.avatar{width:32px;height:32px}.mini-card{display:none}
   .center-table{grid-template-columns:1fr}.pile-area{grid-column:1;gap:18px}
+  .turn-panel{left:8px;top:8px;max-width:46vw;padding:7px 9px}.turn-panel .status-sub{display:none}.turn-panel .status-text{font-size:13px}
+  .chat-feed{left:8px;top:58px;width:calc(100% - 116px);max-height:96px;font-size:12px}
   .draw-pile,.discard-pile{width:88px;height:128px}.discard-pile .card{width:88px;height:128px}.discard-pile .card .card-face{font-size:32px}
   .card{width:78px;height:116px;margin-left:0}.card:first-child{margin-left:0}.card-face{font-size:30px}.hand{min-height:136px;gap:8px}
   .log{display:none}.game-actions{left:8px;right:8px;bottom:8px}.game-actions button{flex:1}
   .player-meta{grid-template-columns:1fr;gap:7px;text-align:center}.player-meta > :last-child{text-align:center}.hand-uno-btn{width:100%}
   .dialog-layer{align-items:flex-start;padding:12px}.dialog{padding:16px;max-height:calc(100dvh - 24px)}.choice-grid{grid-template-columns:1fr}
+  .keyboard-done.active{display:inline-flex}
 }
 @media (max-height:620px){
   .logo{width:104px;height:68px;margin-bottom:16px}.logo span{font-size:22px;padding:8px 15px}
@@ -215,14 +231,9 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
 
   <section class="screen game-screen" id="gameScreen">
     <div class="topbar">
-      <div class="status">
-        <div class="turn-dot" id="turnDot"></div>
-        <div>
-          <div class="status-text" id="turnText">Your turn</div>
-          <div class="status-sub" id="ruleText">Clockwise</div>
-        </div>
-      </div>
+      <div></div>
       <div class="toolbar">
+        <button class="icon-btn chat-toggle" id="chatToggle" title="Game chat" data-action="chat">Chat</button>
         <button class="icon-btn" title="Settings" data-action="settings">⚙</button>
         <button class="danger-btn" data-action="leaveGame">Leave</button>
       </div>
@@ -230,6 +241,14 @@ h1{font-size:clamp(44px,8vw,88px);line-height:.9;margin:0 0 16px;font-weight:950
     <div class="table">
       <div class="opponents" id="opponents"></div>
       <div class="center-table">
+        <div class="turn-panel">
+          <div class="turn-dot" id="turnDot"></div>
+          <div>
+            <div class="status-text" id="turnText">Your turn</div>
+            <div class="status-sub" id="ruleText">Clockwise</div>
+          </div>
+        </div>
+        <div class="chat-feed" id="chatFeed"></div>
         <div class="direction-badge" id="directionBadge">↻ Clockwise</div>
         <div class="pile-area">
           <div class="pile-wrap">
@@ -492,15 +511,15 @@ class GameEngine{
     if(this.pendingDraw>0){
       const n=this.pendingDraw;this.drawTo(player,n);this.pendingDraw=0;this.pendingKind=null;this.advance(1);return {penalty:true,count:n,playable:null};
     }
-    let drawn=0, playable=null;
+    let drawn=0, playable=null, drawnCard=null;
     do{
       this.drawTo(player,1,false);drawn++;
-      const card=player.hand[player.hand.length-1];
-      if(this.canPlay(card,player)) playable=card;
+      drawnCard=player.hand[player.hand.length-1];
+      if(this.canPlay(drawnCard,player)) playable=drawnCard;
     }while(this.settings.drawUntilPlayable && !playable && this.deck.cards.length);
-    player.sortHand();this.lastDrawn=playable;
+    player.sortHand();this.lastDrawn=drawnCard;
     this.emit(`${player.name} drew ${drawn} card${drawn===1?"":"s"}`,{type:"draw",player,count:drawn});
-    if(playable && player.isHuman) return {penalty:false,count:drawn,playable};
+    if(player.isHuman) return {penalty:false,count:drawn,playable,drawnCard};
     if(this.settings.forcePlay && playable && !player.isHuman) return this.playCard(this.current,playable.id,this.bestColor(player));
     this.advance(1);
     return {penalty:false,count:drawn,playable:null};
@@ -548,16 +567,19 @@ class AIController{
 
 class UnoApp{
   constructor(){
-    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.backendURL=this.loadBackendURL();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayPlayerId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;this.peer=null;this.hostConn=null;this.peerConnections=new Map();this.onlineStatus="";this.lastEvent=null;this.seenRemoteEventId=null;this.shownWinnerId=null;
+    this.audio=new AudioFX();this.ai=new AIController();this.settings=this.loadSettings();this.stats=this.loadStats();this.username=this.loadUsername();this.backendURL=this.loadBackendURL();this.clientId=this.loadClientId();this.engine=null;this.lobby=null;this.syncedGame=false;this.suppressSync=false;this.offlineDifficulty="medium";this.selectedCard=null;this.drawPlayCardId=null;this.drawPlayPlayerId=null;this.drawPlayTimer=null;this.aiTimer=null;this.lobbyPollTimer=null;this.unoTimer=null;this.unoTimerPlayerId=null;this.unoCatchableId=null;this.unoDeadline=0;this.peer=null;this.hostConn=null;this.peerConnections=new Map();this.onlineStatus="";this.lastEvent=null;this.seenRemoteEventId=null;this.shownWinnerId=null;this.chatMessages=[];this.usernameUpdateTimer=null;
     this.bind();
   }
   bind(){
     document.addEventListener("click",e=>{
+      if(e.target.closest("[data-keyboard-done]")){this.dismissKeyboard();return}
       const action=e.target.closest("[data-action]")?.dataset.action;
       if(action){this.audio.play("click");this.handleAction(action,e.target);}
+      if(!e.target.closest("input, textarea, select, button")) this.dismissKeyboard();
     });
     document.getElementById("drawPile").addEventListener("click",()=>this.humanDraw());
     document.addEventListener("keydown",e=>{
+      if(e.target.closest("input, textarea, select")) return;
       if(!this.engine) return;
       if(e.key.toLowerCase()==="u") this.humanUno();
       if(e.key.toLowerCase()==="d") this.humanDraw();
@@ -567,12 +589,12 @@ class UnoApp{
     this.lobbyPollTimer=setInterval(()=>this.pollLobby(),500);
   }
   handleAction(action,target){
-    const map={newGame:()=>this.chooseDifficulty(),online:()=>this.showOnline(),settings:()=>this.showSettings(),stats:()=>this.showStats(),hub:()=>location.href="index.html",leaveGame:()=>this.confirmLeave(),uno:()=>this.humanUno(),draw:()=>this.humanDraw(),pass:()=>this.humanPass()};
+    const map={newGame:()=>this.chooseDifficulty(),online:()=>this.showOnline(),settings:()=>this.showSettings(),stats:()=>this.showStats(),hub:()=>location.href="index.html",leaveGame:()=>this.confirmLeave(),uno:()=>this.humanUno(),draw:()=>this.humanDraw(),pass:()=>this.humanPass(),chat:()=>this.showChat()};
     map[action]?.(target);
   }
   screen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active")}
-  dialog(html){const layer=document.getElementById("dialogLayer");layer.innerHTML=`<div class="dialog">${html}</div>`;layer.classList.add("active");return layer}
-  closeDialog(){const l=document.getElementById("dialogLayer");l.classList.remove("active");l.innerHTML=""}
+  dialog(html){const layer=document.getElementById("dialogLayer");layer.onclick=null;layer.innerHTML=`<div class="dialog">${html}</div>`;layer.classList.add("active");return layer}
+  closeDialog(){const l=document.getElementById("dialogLayer");l.onclick=null;l.classList.remove("active");l.innerHTML=""}
   chooseDifficulty(){
     this.dialog(`<h2>Choose AI Difficulty</h2><p>Pick how the computer players make decisions.</p><div class="choice-grid">
       ${["easy","medium","hard"].map(d=>`<button class="chip-btn" data-diff="${d}">${this.cap(d)}</button>`).join("")}
@@ -595,6 +617,7 @@ class UnoApp{
   startGame(players,synced=false){
     this.syncedGame=synced;
     this.shownWinnerId=null;
+    this.chatMessages=synced ? this.chatMessages : [];
     this.engine=new GameEngine(this.settings,e=>this.onEvent(e));
     this.engine.start(players);this.screen("gameScreen");this.render();this.scheduleAI();
   }
@@ -625,7 +648,7 @@ class UnoApp{
     if(!this.engine) return;
     const e=this.engine, meIndex=this.localPlayerIndex(), me=e.players[meIndex], active=e.currentPlayer;
     document.getElementById("turnText").textContent=e.current===meIndex ? `Your turn, ${me.name}` : `${active.name}'s turn`;
-    document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:this.drawPlayCardId?" · play drawn card now":""}`;
+    document.getElementById("ruleText").textContent=`${e.direction===1?"Clockwise":"Counter-clockwise"}${e.pendingDraw?` · answer stack or draw +${e.pendingDraw}`:this.drawPlayCardId?" · drawn card window":""}`;
     document.getElementById("directionBadge").textContent=e.direction===1?"↻ Clockwise":"↺ Counter";
     const turnDot=document.getElementById("turnDot");
     turnDot.style.background=PLAYER_LIGHTS[e.current] || "var(--accent)";
@@ -645,9 +668,22 @@ class UnoApp{
     document.getElementById("opponents").innerHTML=e.players.map((p,i)=>i===meIndex?"":this.opponentHTML(p,i,e.current===i)).join("");
     document.getElementById("discardPile").innerHTML=this.cardHTML(e.topCard,false);
     this.renderHand();
+    this.renderChat();
     const drawBtn=document.getElementById("drawBtn");
     drawBtn.disabled=e.current!==meIndex;
     drawBtn.textContent=e.pendingDraw ? `Draw +${e.pendingDraw}` : "Draw";
+  }
+  renderChat(){
+    const chatBtn=document.getElementById("chatToggle");
+    const feed=document.getElementById("chatFeed");
+    const online=!!this.syncedGame;
+    chatBtn.classList.toggle("active",online);
+    feed.classList.toggle("active",online && this.chatMessages.length>0);
+    if(!online){feed.innerHTML="";return}
+    feed.innerHTML=this.chatMessages.slice(-5).map(m=>{
+      const color=this.escapeHTML(m.color || "#fff");
+      return `<div class="chat-line"><span class="chat-color" style="color:${color}"></span><div class="chat-text"><span class="chat-name" style="color:${color}">${this.escapeHTML(m.name)}</span>: ${this.escapeHTML(m.text)}</div></div>`;
+    }).join("");
   }
   opponentHTML(p,index,active){
     return `<div class="opponent ${active?"active":""}"><div class="row"><div class="avatar">P${index+1}</div><div><div class="opp-name">${p.name}</div><div class="small">${p.calledUno?"UNO · ":""}${p.hand.length} cards</div></div></div><div class="mini-stack"><div class="mini-card"></div><strong>${p.hand.length}</strong></div></div>`;
@@ -680,7 +716,7 @@ class UnoApp{
       }
       return;
     }
-    if(!card || !this.canHumanPlayCard(card,me)) return this.toast(this.drawPlayCardId ? "Play the drawn card or wait" : "That card does not match");
+    if(!card || !this.canHumanPlayCard(card,me)) return this.toast(this.drawPlayCardId ? "Use the drawn card or wait" : "That card does not match");
     this.humanPlay(id);
   }
   canHumanPlayCard(card,me){
@@ -710,7 +746,7 @@ class UnoApp{
     if(this.isOnlineGuest()) return this.requestOnlineMove("draw");
     this.clearDrawPlayWindow();
     const result=this.engine.drawForCurrent();
-    if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id,this.localPlayer().id);
+    if(result?.drawnCard && !result.penalty) this.startDrawPlayWindow(result.drawnCard.id,this.localPlayer().id);
     this.afterHumanMove();
   }
   humanPass(){if(!this.engine || this.engine.current!==this.localPlayerIndex())return;this.engine.pass();this.afterHumanMove()}
@@ -731,7 +767,7 @@ class UnoApp{
     this.drawPlayCardId=cardId;
     this.drawPlayPlayerId=playerId;
     clearTimeout(this.drawPlayTimer);
-    this.drawPlayTimer=setTimeout(()=>this.expireDrawPlayWindow(),1500);
+    this.drawPlayTimer=setTimeout(()=>this.expireDrawPlayWindow(),2000);
   }
   clearDrawPlayWindow(){
     clearTimeout(this.drawPlayTimer);
@@ -826,11 +862,12 @@ class UnoApp{
   renderOnlineHome(){
     this.dialog(`<h2>Online Lobby</h2><p>Host a live room, tell friends the 3-digit code, then play from the same shared game.</p>
       <label class="field-label">Your username
-        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
+        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" enterkeyhint="done" autocomplete="nickname" value="${this.escapeHTML(this.username)}">
       </label>
+      ${this.keyboardDoneHTML()}
       <div class="small">${this.onlineStatus || "Online uses a direct browser connection. Keep the host tab open."}</div>
       <div class="row"><button class="primary-btn" data-host>Host Room</button><button class="ghost-btn" data-join>Join Room</button><button class="ghost-btn" data-close>Back</button></div>`);
-    document.getElementById("usernameInput").oninput=e=>this.setUsername(e.target.value);
+    this.bindUsernameInput();
     document.querySelector("[data-host]").onclick=()=>this.hostRoom();
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
@@ -841,23 +878,52 @@ class UnoApp{
     const isHost=me?.host;
     this.dialog(`<h2>Online Lobby</h2><p>${isHost?"Tell other players this room code.":"Waiting for the host to start."}</p>
       <label class="field-label">Your username
-        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" value="${this.escapeHTML(this.username)}">
+        <input class="field" id="usernameInput" maxlength="18" placeholder="Username" enterkeyhint="done" autocomplete="nickname" value="${this.escapeHTML(this.username)}">
       </label>
+      ${this.keyboardDoneHTML()}
       <div class="code">${this.lobby.code}</div>
       <div class="lobby-list">${slots.map((p,i)=>`<div class="slot ${p?.ready?"ready":""}"><strong>${p?this.escapeHTML(p.name)+(p.host?" (Host)":""):`Player ${i+1}`}</strong><span>${p?(p.host?"Host":p.ready?"Ready":"Not ready"):"Waiting for player..."}</span></div>`).join("")}</div>
       <div class="small">${this.onlineStatus || (isHost?"Waiting for players.":"Connected to host.")}</div>
       <div class="row">${isHost?`<button class="primary-btn" data-start-lobby ${this.canStartLobby()?"":"disabled"}>Start Game</button>`:`<button class="primary-btn ${me?.ready?"ready-btn":""}" data-ready ${me?.ready?"disabled":""}>${me?.ready?"Ready":"Ready"}</button>`}<button class="ghost-btn" data-join>Join Different Room</button><button class="ghost-btn" data-close>Back</button></div>`);
-    document.getElementById("usernameInput").oninput=e=>{this.setUsername(e.target.value);this.updateLobbyPlayer({name:this.username})};
+    this.bindUsernameInput(true);
     document.querySelector("[data-ready]")?.addEventListener("click",()=>{this.updateLobbyPlayer({ready:true});this.renderLobby()});
     document.querySelector("[data-start-lobby]")?.addEventListener("click",()=>this.askAIFill());
     document.querySelector("[data-join]").onclick=()=>this.promptJoinRoom();
     document.querySelector("[data-close]").onclick=()=>this.closeDialog();
+  }
+  bindUsernameInput(updateLobby=false){
+    const input=document.getElementById("usernameInput");
+    if(!input) return;
+    input.oninput=e=>{
+      this.setUsername(e.target.value);
+      if(!updateLobby) return;
+      clearTimeout(this.usernameUpdateTimer);
+      this.usernameUpdateTimer=setTimeout(()=>this.updateLobbyPlayer({name:this.username}),220);
+    };
+    input.onkeydown=e=>{
+      if(e.key==="Enter"){
+        this.dismissKeyboard();
+        if(updateLobby) this.updateLobbyPlayer({name:this.username});
+      }
+    };
+  }
+  keyboardDoneHTML(){
+    return `<button class="chip-btn keyboard-done active" type="button" data-keyboard-done>Keyboard down</button>`;
+  }
+  dismissKeyboard(){
+    const active=document.activeElement;
+    if(active && active.matches?.("input, textarea, select")) active.blur();
+  }
+  shouldDeferFocusedInputRender(){
+    const active=document.activeElement;
+    return !!active?.matches?.("#usernameInput, #joinCodeInput, #chatInput");
   }
   hostRoom(){
     this.syncLobbyUsername();
     if(typeof Peer==="undefined"){this.onlineStatus="Online library could not load.";return this.renderOnlineHome()}
     this.resetOnlineConnection();
     const code=this.roomCode();
+    this.chatMessages=[];
     this.lobby={code,players:[{id:this.clientId,name:this.username,host:true,ready:true,connected:true}],role:"host",status:"lobby",version:0};
     this.onlineStatus="Opening room...";
     this.peer=new Peer(this.roomPeerId(code));
@@ -869,11 +935,12 @@ class UnoApp{
   promptJoinRoom(){
     this.syncLobbyUsername();
     this.dialog(`<h2>Join Room</h2><p>Paste the room code from the host.</p>
-      <input class="field" id="joinCodeInput" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="Room code">
+      <input class="field" id="joinCodeInput" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="Room code" enterkeyhint="go">
+      ${this.keyboardDoneHTML()}
       <div class="row" style="margin-top:14px"><button class="primary-btn" data-confirm-join>Join Room</button><button class="ghost-btn" data-back-online>Back</button></div>`);
     document.getElementById("joinCodeInput").focus();
     document.getElementById("joinCodeInput").oninput=e=>e.target.value=e.target.value.replace(/\D/g,"").slice(0,3);
-    document.getElementById("joinCodeInput").onkeydown=e=>{if(e.key==="Enter")this.joinRoom(e.target.value)};
+    document.getElementById("joinCodeInput").onkeydown=e=>{if(e.key==="Enter"){this.dismissKeyboard();this.joinRoom(e.target.value)}};
     document.querySelector("[data-confirm-join]").onclick=()=>this.joinRoom(document.getElementById("joinCodeInput").value);
     document.querySelector("[data-back-online]").onclick=()=>this.renderOnlineHome();
   }
@@ -882,6 +949,7 @@ class UnoApp{
     if(code.length<1) return this.toast("Enter a room code");
     if(typeof Peer==="undefined"){this.onlineStatus="Online library could not load.";return this.renderOnlineHome()}
     this.resetOnlineConnection();
+    this.chatMessages=[];
     this.lobby={code,players:[{id:this.clientId,name:this.username,host:false,ready:false,connected:true}],role:"guest",status:"joining"};
     this.onlineStatus="Joining room...";
     this.renderLobby();
@@ -947,7 +1015,7 @@ class UnoApp{
     if(!this.lobby || this.lobby.role!=="host") return;
     this.lobby.version=(this.lobby.version || 0)+1;
     this.sendToGuests({type:"lobby",lobby:this.publicLobby()});
-    if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+    if(document.getElementById("dialogLayer").classList.contains("active") && !this.shouldDeferFocusedInputRender()) this.renderLobby();
   }
   bindHostConnection(conn){
     conn.on("data",data=>this.handleHostMessage(conn,data));
@@ -977,6 +1045,7 @@ class UnoApp{
       this.broadcastLobby();
       return;
     }
+    if(data.type==="chat"){this.handleIncomingChat(data);return}
     if(data.type==="move") this.handleOnlineMove(data);
   }
   bindGuestConnection(conn){
@@ -995,12 +1064,14 @@ class UnoApp{
     if(data.type==="reject"){this.onlineStatus=data.reason || "Could not join room";this.toast(this.onlineStatus);this.renderOnlineHome();return}
     if(data.type==="lobby"){
       this.lobby={...data.lobby,role:"guest"};
+      this.chatMessages=this.lobby.chatMessages || this.chatMessages;
       this.onlineStatus="Connected to host.";
       if(this.lobby.status==="started" && this.lobby.gameState) this.startSyncedLobbyGame();
-      else if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+      else if(document.getElementById("dialogLayer").classList.contains("active") && !this.shouldDeferFocusedInputRender()) this.renderLobby();
       return;
     }
     if(data.type==="gameState") this.applyOnlineGameState(data);
+    if(data.type==="chat") this.addChatMessage(data.message);
   }
   removePeerPlayer(playerId){
     if(!playerId || !this.lobby || this.lobby.role!=="host" || this.lobby.status==="started") return;
@@ -1014,6 +1085,42 @@ class UnoApp{
   isOnlineHost(){return this.syncedGame && this.lobby?.role==="host"}
   requestOnlineMove(action,fields={}){
     this.sendToHost({type:"move",action,playerId:this.clientId,...fields});
+  }
+  showChat(){
+    if(!this.syncedGame) return this.toast("Game chat is for online games");
+    const layer=this.dialog(`<h2>Game Chat</h2><div class="chat-dialog">
+      <div class="chat-input-row"><input class="field" id="chatInput" maxlength="180" placeholder="Message" enterkeyhint="send" autocomplete="off"><button class="primary-btn" data-send-chat>Send</button></div>
+      ${this.keyboardDoneHTML()}
+      <div class="small">Press Enter to send.</div>
+    </div>`);
+    layer.onclick=e=>{if(e.target===layer)this.closeDialog()};
+    const input=document.getElementById("chatInput");
+    input.focus();
+    input.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();this.sendChat(input.value);input.value=""}};
+    document.querySelector("[data-send-chat]").onclick=()=>{this.sendChat(input.value);input.value="";input.focus()};
+  }
+  sendChat(text){
+    const clean=(text || "").trim().replace(/\s+/g," ").slice(0,180);
+    if(!clean) return;
+    const data={type:"chat",id:uid(),playerId:this.clientId,text:clean,time:Date.now()};
+    if(this.isOnlineHost()) this.handleIncomingChat(data);
+    else this.sendToHost(data);
+  }
+  handleIncomingChat(data){
+    if(!this.isOnlineHost() || !this.engine || !data?.text) return;
+    const player=this.engine.players.find(p=>p.id===data.playerId);
+    if(!player) return;
+    const index=this.engine.players.indexOf(player);
+    const message={id:data.id || uid(),playerId:player.id,name:player.name,color:PLAYER_LIGHTS[index] || "#fff",text:String(data.text).trim().slice(0,180),time:data.time || Date.now()};
+    this.addChatMessage(message);
+    this.sendToGuests({type:"chat",message});
+  }
+  addChatMessage(message){
+    if(!message || this.chatMessages.some(m=>m.id===message.id)) return;
+    this.chatMessages.push(message);
+    this.chatMessages=this.chatMessages.slice(-30);
+    if(this.lobby) this.lobby.chatMessages=this.chatMessages;
+    this.renderChat();
   }
   handleOnlineMove(data){
     if(!this.isOnlineHost() || !this.engine) return;
@@ -1030,7 +1137,7 @@ class UnoApp{
     if(data.action==="draw" && this.engine.current===index){
       this.clearDrawPlayWindow();
       const result=this.engine.drawForCurrent();
-      if(result?.playable && !result.penalty) this.startDrawPlayWindow(result.playable.id,player.id);
+      if(result?.drawnCard && !result.penalty) this.startDrawPlayWindow(result.drawnCard.id,player.id);
       this.afterHostOnlineMove();
     }
     if(data.action==="uno"){
@@ -1054,6 +1161,7 @@ class UnoApp{
   }
   applyOnlineGameState(data){
     this.lobby={...data.lobby,role:this.lobby?.role || "guest"};
+    this.chatMessages=this.lobby.chatMessages || this.chatMessages;
     const event=this.lobby.gameState?.lastEvent;
     this.startSyncedLobbyGame();
     this.playRemoteEvent(event);
@@ -1093,7 +1201,7 @@ class UnoApp{
     }
     try{return JSON.parse(localStorage.getItem(`unoRoom_${code}`)||"null")}catch{return null}
   }
-  roomPayload(){return {code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,version:this.lobby.version}}
+  roomPayload(){return {code:this.lobby.code,players:this.lobby.players,status:this.lobby.status || "lobby",gameDefs:this.lobby.gameDefs || null,gameState:this.lobby.gameState || null,chatMessages:this.chatMessages,version:this.lobby.version}}
   cloudURL(){return (this.backendURL || ONLINE_BACKEND.firebaseDatabaseURL || "").trim()}
   cloudEnabled(){return /^https:\/\/.+(?:firebaseio\.com|firebasedatabase\.app)\/?$/.test(this.cloudURL())}
   roomURL(code){return `${this.cloudURL().replace(/\/$/,"")}/unoRooms/${code}.json`}
@@ -1157,11 +1265,12 @@ class UnoApp{
     if(!room || room.version===(this.lobby?.version || 0)) return;
     const role=this.lobby?.role;
     this.lobby={...room,role};
+    this.chatMessages=this.lobby.chatMessages || this.chatMessages;
     if(this.lobby.status==="started" && this.lobby.gameState){
       this.startSyncedLobbyGame();
       return;
     }
-    if(document.getElementById("dialogLayer").classList.contains("active")) this.renderLobby();
+    if(document.getElementById("dialogLayer").classList.contains("active") && !this.shouldDeferFocusedInputRender()) this.renderLobby();
   }
   canStartLobby(){return this.lobby.players.length>0 && this.lobby.players.every(p=>p.host || p.ready)}
   askAIFill(){
