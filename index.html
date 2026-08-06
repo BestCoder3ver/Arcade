@@ -49,6 +49,18 @@ body{
     align-content:start;
 }
 
+.web-games-bottom{
+    min-height:200vh;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding-bottom:40px;
+}
+
+.web-games-bottom button{
+    width:min(320px, 100%);
+}
+
 /* TITLE */
 h1{
     color:cyan;
@@ -299,10 +311,13 @@ button:hover{
     <button onclick="checkAuthThenGo('chess.html')">
          ♟️ Chess
     </button>
-    <button onclick="checkAuthThenGo('gulper.io.html')">
-         🌐 Web Games
-    </button>
     <!-- Add more downloaded games here later -->
+    </div>
+
+    <div class="web-games-bottom">
+        <button onclick="checkAuthThenGo('gulper.io.html')">
+             🌐 Web Games
+        </button>
     </div>
 
 </div>
