@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Browser</title>
+  <title>Gulper.io</title>
   <style>
     * {
       box-sizing: border-box;
@@ -164,11 +164,9 @@
 <body>
   <main class="app">
     <div class="bar">
-      <div class="title">Game Browser</div>
+      <div class="title">Gulper.io</div>
       <div class="tabs">
         <button class="active" type="button" data-game="gulper">Gulper.io</button>
-        <button type="button" data-game="zombs">Zombs Royale</button>
-        <button type="button" data-game="subway">Subway Surfers</button>
       </div>
       <button type="button" onclick="reloadGame()">Refresh</button>
       <button type="button" onclick="goFullscreen()">Fullscreen</button>
@@ -198,14 +196,6 @@
       gulper: {
         name: "Gulper.io",
         url: "https://gulper.io"
-      },
-      zombs: {
-        name: "Zombs Royale",
-        url: "https://zombsroyale.io/"
-      },
-      subway: {
-        name: "Subway Surfers",
-        url: "https://subwaysurfers.com/"
       }
     };
 
