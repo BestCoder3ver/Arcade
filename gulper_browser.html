@@ -53,6 +53,8 @@
       gap: 6px;
       flex: 1;
       min-width: 260px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     button,
@@ -69,6 +71,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      white-space: nowrap;
+      touch-action: manipulation;
     }
 
     button.active {
@@ -131,6 +135,30 @@
     iframe.loaded + .fallback {
       display: none;
     }
+
+    @media (max-width: 620px) {
+      .bar {
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .title {
+        width: 100%;
+      }
+
+      .tabs {
+        order: 2;
+        flex-basis: 100%;
+        min-width: 0;
+      }
+
+      button,
+      a.button {
+        height: 36px;
+        padding: 0 10px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -145,6 +173,7 @@
       <button type="button" onclick="reloadGame()">Refresh</button>
       <button type="button" onclick="goFullscreen()">Fullscreen</button>
       <a class="button" id="openButton" href="https://gulper.io" target="_blank" rel="noopener">Open</a>
+      <a class="button" href="index.html">Back to Hub</a>
     </div>
 
     <div class="frame-wrap" id="frameWrap">
